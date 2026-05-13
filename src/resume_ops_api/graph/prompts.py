@@ -75,7 +75,8 @@ def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict
 
 def certificates_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
-        "Select only the most relevant certificates by existing certificate names. "
+        "Select at most 18 of the most relevant certificates by existing certificate names only. "
+        "Return the strongest subset for the target job, ordered by relevance. "
         "Do not rewrite or invent certificate content."
     )
     user = (

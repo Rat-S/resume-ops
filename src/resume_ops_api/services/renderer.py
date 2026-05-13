@@ -18,7 +18,7 @@ class ResumeRenderer:
         input_path.write_text(json.dumps(resume, ensure_ascii=True, indent=2), encoding="utf-8")
         process = await asyncio.create_subprocess_exec(
             self.binary,
-            "render",
+            "export",
             str(input_path),
             "--theme",
             theme,
@@ -35,5 +35,12 @@ class ResumeRenderer:
                 status_code=500,
                 details={"stderr": stderr.decode("utf-8", errors="ignore")},
             )
+        header = pdf_path.read_bytes()[:5]
+        if header != b"%PDF-":
+            raise AppError(
+                "Renderer output was not a valid PDF.",
+                code="invalid_pdf_output",
+                status_code=500,
+                details={"output_path": str(pdf_path)},
+            )
         return pdf_path
-

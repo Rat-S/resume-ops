@@ -15,6 +15,7 @@ from resume_ops_api.graph.models import (
 )
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
+MAX_SELECTED_CERTIFICATES = 18
 
 
 def _normalize(value: str) -> str:
@@ -174,7 +175,7 @@ class ResumeMerger:
         originals_by_name = {_normalize(certificate.get("name", "")): certificate for certificate in original_certificates}
         merged["certificates"] = [
             copy.deepcopy(originals_by_name[name_key])
-            for name in selected_certificates.certificates
+            for name in selected_certificates.certificates[:MAX_SELECTED_CERTIFICATES]
             if (name_key := _normalize(name)) in originals_by_name
         ]
 

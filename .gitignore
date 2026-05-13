@@ -6,4 +6,4 @@ data/
 *.local
 .local/ 
 .agents/ 
-
+.env

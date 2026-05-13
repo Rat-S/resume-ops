@@ -74,3 +74,20 @@ def test_merger_filters_invented_projects_and_skills(sample_resume: dict) -> Non
 
     assert merged["skills"] == [{"name": "Product Strategy", "level": "", "keywords": ["Roadmap Planning"]}]
     assert merged["projects"] == [{**sample_resume["projects"][0], "description": "Real"}]
+
+
+def test_merger_caps_certificates_to_18(sample_resume: dict) -> None:
+    merger = ResumeMerger()
+    selected = [item["name"] for item in sample_resume["certificates"][:30]]
+    merged = merger.merge(
+        original_resume=sample_resume,
+        tailored_work=None,
+        tailored_education=None,
+        tailored_skills=None,
+        tailored_projects=None,
+        selected_certificates=CertificatesSelectionOutput(certificates=selected),
+        tailored_optional_sections=None,
+    )
+
+    assert len(merged["certificates"]) == 18
+    assert [item["name"] for item in merged["certificates"]] == selected[:18]

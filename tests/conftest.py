@@ -92,7 +92,7 @@ class FakeRenderer:
     async def render(self, *, resume: dict, theme: str, output_dir: Path) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
         pdf_path = output_dir / "output.pdf"
-        pdf_path.write_bytes(f"pdf:{theme}:{resume.get('basics', {}).get('name', '')}".encode("utf-8"))
+        pdf_path.write_bytes(b"%PDF-1.4\n% Fake test PDF\n")
         return pdf_path
 
 

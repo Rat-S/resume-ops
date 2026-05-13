@@ -28,7 +28,7 @@ The service is intentionally conservative.
 - `education` only tailors `courses`
 - `skills` can be regrouped, prioritized, and rewritten, but must remain plausible from the master resume
 - `projects` can be selected, omitted, reordered, and rewritten, but new projects must not be invented
-- `certificates` are selection-only; certificate content is not rewritten
+- `certificates` are selection-only; certificate content is not rewritten, and the final output is capped at 18 certificates
 - `interests` can be tailored if present
 - `languages`, `volunteer`, `awards`, `publications`, `references`, `meta`, and other unhandled fields pass through unchanged
 
