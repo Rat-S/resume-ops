@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "resume-ops-api"
+version = "0.1.0"
+description = "Podman-first FastAPI service for structured resume tailoring."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "aiosqlite>=0.20.0",
+  "fastapi>=0.115.0",
+  "httpx>=0.27.0",
+  "instructor>=1.5.0",
+  "jsonschema>=4.23.0",
+  "langgraph>=0.2.39",
+  "litellm>=1.51.0",
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.5.2",
+  "sqlalchemy>=2.0.35",
+  "tenacity>=9.0.0",
+  "uvicorn>=0.32.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.3",
+  "pytest-asyncio>=0.24.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/resume_ops_api"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+

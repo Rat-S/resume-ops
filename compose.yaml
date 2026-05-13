@@ -1,0 +1,20 @@
+services:
+  resume-ops-api:
+    build:
+      context: .
+      dockerfile: Containerfile
+      args:
+        NPM_THEMES: ${NPM_THEMES:-jsonresume-theme-stackoverflow}
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data:Z
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
