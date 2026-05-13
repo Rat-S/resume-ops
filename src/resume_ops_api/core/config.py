@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     data_dir: Path = Path("/data")
     database_url: str | None = None
+    master_resume_path: Path | None = None
     strategy_model: str = "openai/gpt-4o-mini"
     work_model: str = "openai/gpt-4o-mini"
     education_model: str = "openai/gpt-4o-mini"

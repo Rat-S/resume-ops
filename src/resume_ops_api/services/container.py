@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -29,6 +31,25 @@ class ServiceContainer:
     job_store: JobStore
     orchestrator: TailorOrchestrator
     job_runner: AsyncJobRunner
+    _master_resume: dict[str, Any] | None = None
+
+    @property
+    def master_resume(self) -> dict[str, Any] | None:
+        if self._master_resume is not None:
+            return self._master_resume
+            
+        if not self.settings.master_resume_path or not self.settings.master_resume_path.exists():
+            return None
+            
+        try:
+            with open(self.settings.master_resume_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.validator.validate(data)
+            self._master_resume = data
+            return self._master_resume
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Failed to load master resume from {self.settings.master_resume_path}: {e}")
+            return None
 
     async def start(self) -> None:
         self.settings.data_dir.mkdir(parents=True, exist_ok=True)

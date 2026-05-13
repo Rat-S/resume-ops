@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from resume_ops_api.api.deps import get_container
 from resume_ops_api.api.models import (
     HealthResponse,
+    MasterResumeStatus,
     QueuedTaskResponse,
     TailorRequest,
     TailorResponse,
@@ -28,6 +29,17 @@ async def readyz(container: ServiceContainer = Depends(get_container)) -> Health
     return HealthResponse(status="ready")
 
 
+@router.get("/api/v1/master-resume/status", response_model=MasterResumeStatus)
+async def get_master_resume_status(container: ServiceContainer = Depends(get_container)) -> MasterResumeStatus:
+    if not container.settings.master_resume_path:
+        return MasterResumeStatus(configured=False, exists=False, valid=False, message="No master resume configured")
+    if not container.settings.master_resume_path.exists():
+        return MasterResumeStatus(configured=True, exists=False, valid=False, message="Master resume file not found")
+    if not container.master_resume:
+        return MasterResumeStatus(configured=True, exists=True, valid=False, message="Master resume is invalid")
+    return MasterResumeStatus(configured=True, exists=True, valid=True, message="Master resume loaded successfully")
+
+
 @router.get("/api/v1/themes", response_model=ThemeListResponse)
 async def list_themes(container: ServiceContainer = Depends(get_container)) -> ThemeListResponse:
     return ThemeListResponse(
@@ -46,14 +58,29 @@ async def tailor_resume(
     response: Response,
     container: ServiceContainer = Depends(get_container),
 ) -> TailorResponse | QueuedTaskResponse:
+    if payload.resume is None:
+        if not container.master_resume:
+            raise HTTPException(status_code=400, detail="No resume provided and no master resume configured or valid")
+        resume_data = container.master_resume
+    else:
+        resume_data = payload.resume
+
+    # Create a new payload with the resolved resume to pass to the async job runner if needed
+    effective_payload = TailorRequest(
+        resume=resume_data,
+        job_description=payload.job_description,
+        theme=payload.theme,
+        callback_url=payload.callback_url,
+    )
+
     theme = container.theme_service.resolve(payload.theme)
     if payload.callback_url:
-        task_id = await container.job_runner.submit(payload, theme)
+        task_id = await container.job_runner.submit(effective_payload, theme)
         response.status_code = status.HTTP_202_ACCEPTED
         return QueuedTaskResponse(task_id=task_id, status="queued")
 
     result = await container.orchestrator.run(
-        resume=payload.resume,
+        resume=resume_data,
         job_description=payload.job_description,
         theme=theme,
     )

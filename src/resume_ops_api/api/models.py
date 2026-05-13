@@ -7,7 +7,7 @@ from pydantic import AnyHttpUrl, BaseModel, Field
 
 
 class TailorRequest(BaseModel):
-    resume: dict[str, Any]
+    resume: dict[str, Any] | None = None
     job_description: str = Field(min_length=1)
     theme: str | None = None
     callback_url: AnyHttpUrl | None = None
@@ -53,4 +53,11 @@ class ThemeListResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+
+class MasterResumeStatus(BaseModel):
+    configured: bool
+    exists: bool
+    valid: bool
+    message: str
 

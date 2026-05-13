@@ -6,7 +6,7 @@ Podman-first FastAPI service for tailoring a JSON Resume to a job description wh
 
 The service accepts:
 
-- a master resume in JSON Resume format
+- an optional master resume in JSON Resume format (if omitted, falls back to the configured `MASTER_RESUME_PATH`)
 - a target job description
 - an optional rendering theme
 - an optional callback URL for async execution
@@ -74,6 +74,7 @@ Important variables:
 - `ALLOWED_THEMES`: comma-separated allowlist of supported themes
 - `MAX_CONCURRENT_JOBS`: background worker concurrency
 - `CALLBACK_TIMEOUT_SECONDS`: outbound callback timeout
+- `MASTER_RESUME_PATH`: optional path to a default JSON Resume on disk. If provided, the API caller can omit the `resume` field from the request payload.
 - `DATA_DIR`: persistent app data path, including SQLite DB and rendered PDFs
 - `DATABASE_URL`: optional explicit DB URL; if unset, SQLite is created under `DATA_DIR`
 
@@ -92,6 +93,7 @@ DEFAULT_THEME=jsonresume-theme-stackoverflow
 ALLOWED_THEMES=jsonresume-theme-stackoverflow,jsonresume-theme-even
 MAX_CONCURRENT_JOBS=2
 CALLBACK_TIMEOUT_SECONDS=5
+MASTER_RESUME_PATH=/data/master-resume.json
 DATA_DIR=/data
 ```
 
@@ -130,37 +132,35 @@ Example response:
 
 ### Synchronous Tailoring
 
+If a `MASTER_RESUME_PATH` is configured in your `.env` (or via Docker), you can tailor your resume by simply providing the job description:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/tailor \
+  -H "Content-Type: application/json" \
+  -d @- <<'JSON'
+{
+  "job_description": "Looking for a product leader with AI and platform experience.",
+  "theme": "jsonresume-theme-stackoverflow"
+}
+JSON
+```
+
+If you don't have a `MASTER_RESUME_PATH` configured, or if you want to override it, you can provide the full JSON Resume in the payload:
+
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/tailor \
   -H "Content-Type: application/json" \
   -d @- <<'JSON'
 {
   "resume": {
-    "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
     "basics": {
       "name": "Jane Doe",
       "email": "jane@example.com",
       "summary": "Product leader with experience in AI systems."
     },
-    "work": [
-      {
-        "name": "Example Corp",
-        "position": "Product Manager",
-        "startDate": "2022-01",
-        "endDate": "2024-06",
-        "highlights": [
-          "Led roadmap planning",
-          "Worked with engineering"
-        ]
-      }
-    ],
-    "education": [],
-    "skills": [],
-    "projects": [],
-    "certificates": []
+    "work": []
   },
-  "job_description": "Looking for a product leader with AI and platform experience.",
-  "theme": "jsonresume-theme-stackoverflow"
+  "job_description": "Looking for a product leader with AI and platform experience."
 }
 JSON
 ```
