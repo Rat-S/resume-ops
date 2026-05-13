@@ -79,6 +79,8 @@ class ResumeMerger:
         for index, original_entry in enumerate(original_work):
             if not tailored_work or index >= len(tailored_work.work):
                 continue
+            if tailored_work.work[index].summary is not None:
+                original_entry["summary"] = tailored_work.work[index].summary.strip()
             original_entry["highlights"] = _clean_string_list(tailored_work.work[index].highlights)
         merged["work"] = original_work
 
@@ -211,4 +213,3 @@ class ResumeMerger:
             return False
         overlap = significant & corpus_tokens
         return len(overlap) / len(significant) >= 0.5
-

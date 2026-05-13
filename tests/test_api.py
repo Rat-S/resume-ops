@@ -33,6 +33,7 @@ async def test_sync_tailor_returns_pdf_and_preserves_basics(client: AsyncClient,
     assert payload["theme"] == "jsonresume-theme-stackoverflow"
     assert payload["resume"]["basics"] == sample_resume["basics"]
     assert payload["resume"]["work"][0]["name"] == sample_resume["work"][0]["name"]
+    assert payload["resume"]["work"][0]["summary"] == "Tailored summary for Covai Labs"
     assert payload["resume"]["work"][0]["highlights"] == ["Tailored impact for Covai Labs"]
     assert payload["resume"]["skills"][0]["name"] == "Product Strategy"
     assert payload["resume"]["skills"] == [

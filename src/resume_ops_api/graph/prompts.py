@@ -20,9 +20,9 @@ def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, 
 
 def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
-        "Tailor only the highlights list for each work item. "
-        "Do not change company names, positions, dates, locations, summaries, or order. "
-        "Do not invent unsupported achievements."
+        "Tailor only the summary and highlights for each work item. "
+        "Do not change company names, positions, dates, locations, urls, or order. "
+        "Do not invent unsupported responsibilities or achievements."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
@@ -98,4 +98,3 @@ def optional_sections_prompt(resume: dict[str, Any], job_description: str, strat
         f"Optional sections:\n{_json({'interests': resume.get('interests', [])})}"
     )
     return system, user
-

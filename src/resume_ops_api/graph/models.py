@@ -13,6 +13,7 @@ class StrategyOutput(BaseModel):
 
 
 class WorkEntryTailoring(BaseModel):
+    summary: str | None = None
     highlights: list[str] = Field(default_factory=list)
 
 
@@ -68,4 +69,3 @@ class TailorResult(BaseModel):
     pdf_path: str
     pdf_base64: str
     theme: str
-

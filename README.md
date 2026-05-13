@@ -24,7 +24,7 @@ It then:
 The service is intentionally conservative.
 
 - `basics` is preserved exactly as provided
-- `work` keeps every job and only tailors `highlights`
+- `work` keeps every job and only tailors `summary` and `highlights`
 - `education` only tailors `courses`
 - `skills` can be regrouped, prioritized, and rewritten, but must remain plausible from the master resume
 - `projects` can be selected, omitted, reordered, and rewritten, but new projects must not be invented

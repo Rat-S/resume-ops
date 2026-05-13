@@ -18,7 +18,9 @@ def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
     original = copy.deepcopy(sample_resume)
     merged = merger.merge(
         original_resume=sample_resume,
-        tailored_work=WorkTailoringOutput(work=[{"highlights": ["Tailored"]} for _ in sample_resume["work"]]),
+        tailored_work=WorkTailoringOutput(
+            work=[{"summary": "Tailored summary", "highlights": ["Tailored"]} for _ in sample_resume["work"]]
+        ),
         tailored_education=EducationTailoringOutput(
             education=[{"courses": ["Relevant coursework"]} for _ in sample_resume["education"]]
         ),
@@ -38,6 +40,7 @@ def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
 
     assert merged["basics"] == original["basics"]
     assert merged["work"][0]["name"] == original["work"][0]["name"]
+    assert merged["work"][0]["summary"] == "Tailored summary"
     assert merged["work"][0]["highlights"] == ["Tailored"]
     assert merged["education"][0]["institution"] == original["education"][0]["institution"]
     assert merged["education"][0]["courses"] == ["Relevant coursework"]

@@ -31,7 +31,11 @@ class FakeStructuredLLMClient:
         if response_model.__name__ == "WorkTailoringOutput":
             return response_model(
                 work=[
-                    {"highlights": [f"Tailored impact for {item['name']}"]} for item in self.resume.get("work", [])
+                    {
+                        "summary": f"Tailored summary for {item['name']}",
+                        "highlights": [f"Tailored impact for {item['name']}"],
+                    }
+                    for item in self.resume.get("work", [])
                 ]
             )
         if response_model.__name__ == "EducationTailoringOutput":
