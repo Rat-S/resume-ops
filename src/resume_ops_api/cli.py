@@ -6,14 +6,19 @@ import shutil
 import sys
 from pathlib import Path
 
-from resume_ops_api.core.config import settings
-from resume_ops_api.services.container import ServiceContainer
+from resume_ops_api.core.config import get_settings
+from resume_ops_api.services.container import build_container
+from resume_ops_api.core.exceptions import ResumeValidationError
 
 # Configure basic logging for the CLI
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
 async def async_main(args: argparse.Namespace) -> int:
+    settings = get_settings()
+    # Ensure data directory exists for local testing
+    settings.data_dir = Path("./data")
+    
     resume_path = Path(args.resume)
     jd_path = Path(args.jd)
     output_pdf_path = Path(args.output)
@@ -36,7 +41,7 @@ async def async_main(args: argparse.Namespace) -> int:
     job_description = jd_path.read_text(encoding="utf-8")
 
     logging.info("Initializing service container...")
-    container = ServiceContainer(settings)
+    container = build_container(settings)
 
     theme = args.theme
     if not theme:
@@ -56,6 +61,12 @@ async def async_main(args: argparse.Namespace) -> int:
             job_description=job_description,
             theme=theme,
         )
+    except ResumeValidationError as e:
+        logging.error(f"Tailoring failed: {e.message}")
+        if e.details and "errors" in e.details:
+            for err in e.details["errors"]:
+                logging.error(f"  - {err['path']}: {err['message']}")
+        return 1
     except Exception as e:
         logging.error(f"Tailoring failed: {e}")
         return 1
