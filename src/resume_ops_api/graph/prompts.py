@@ -11,8 +11,14 @@ def _json(data: Any) -> str:
 def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, str]:
     system = (
         "You are tailoring a resume without inventing facts. "
-        "Return only structured JSON matching the requested schema. "
-        "Use the full master resume for context, but describe only relevance rules and priorities."
+        "Return only structured JSON matching the following structure:\n"
+        "{\n"
+        "  \"target_narrative\": \"string\",\n"
+        "  \"priority_keywords\": [\"string\"],\n"
+        "  \"section_rules\": [\"string\"],\n"
+        "  \"red_lines\": [\"string\"]\n"
+        "}\n"
+        "Use the full master resume for context to determine the tailoring strategy."
     )
     user = f"Job description:\n{job_description}\n\nMaster resume:\n{_json(resume)}"
     return system, user
@@ -22,7 +28,8 @@ def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str
     system = (
         "Tailor only the summary and highlights for each work item. "
         "Do not change company names, positions, dates, locations, urls, or order. "
-        "Do not invent unsupported responsibilities or achievements."
+        "Do not invent unsupported responsibilities or achievements. "
+        "Return structured JSON with this key: work (a list of objects with summary and highlights)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
@@ -35,7 +42,8 @@ def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str
 
 def education_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
-        "Tailor only education courses. Preserve institution, degree, dates, scores, and other metadata exactly."
+        "Tailor only education courses. Preserve institution, degree, dates, scores, and other metadata exactly. "
+        "Return structured JSON with this key: education (a list of objects with courses list)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
@@ -49,7 +57,8 @@ def education_prompt(resume: dict[str, Any], job_description: str, strategy: dic
 def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
         "Tailor the skills section by regrouping and prioritizing existing evidence from the master resume. "
-        "Keep JSON Resume skill objects. Do not invent unsupported skills."
+        "Keep JSON Resume skill objects. Do not invent unsupported skills. "
+        "Return structured JSON with this key: skills (a list of objects with name, level, and keywords)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
@@ -62,7 +71,8 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
 def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
         "Choose only from existing projects. You may omit, reorder, and tailor descriptions, highlights, keywords, and roles. "
-        "Do not invent new project names or metadata."
+        "Do not invent new project names or metadata. "
+        "Return structured JSON with this key: projects (a list of tailored project objects)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
@@ -77,7 +87,8 @@ def certificates_prompt(resume: dict[str, Any], job_description: str, strategy: 
     system = (
         "Select at most 18 of the most relevant certificates by existing certificate names only. "
         "Return the strongest subset for the target job, ordered by relevance. "
-        "Do not rewrite or invent certificate content."
+        "Do not rewrite or invent certificate content. "
+        "Return structured JSON with this key: certificates (a list of certificate names)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"

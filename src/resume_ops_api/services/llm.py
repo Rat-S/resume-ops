@@ -25,7 +25,7 @@ class StructuredLLMClient:
         response_model: type[ModelT],
     ) -> ModelT:
         try:
-            client = instructor.from_litellm(self.completion_fn)
+            client = instructor.from_litellm(self.completion_fn, max_retries=3)
             response = await client.chat.completions.create(
                 model=model,
                 response_model=response_model,
@@ -53,6 +53,8 @@ class StructuredLLMClient:
             content = completion["choices"][0]["message"]["content"]
             return response_model.model_validate(json.loads(content))
         except Exception as exc:
+            import logging
+            logging.error(f"Structured LLM generation failed for model '{model}': {exc}")
             raise AppError(
                 f"Structured LLM generation failed for model '{model}'.",
                 code="llm_generation_failed",

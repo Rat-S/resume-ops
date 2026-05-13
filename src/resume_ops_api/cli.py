@@ -16,8 +16,14 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 async def async_main(args: argparse.Namespace) -> int:
     settings = get_settings()
-    # Ensure data directory exists for local testing
-    settings.data_dir = Path("./data")
+    
+    # For CLI usage, if using the default /data and it's not writable,
+    # fallback to ./data to make it easier for local users.
+    if settings.data_dir == Path("/data") and not Path("/data").exists():
+        settings.data_dir = Path("./data")
+    
+    # Ensure data directory exists
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
     
     resume_path = Path(args.resume)
     jd_path = Path(args.jd)

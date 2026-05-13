@@ -36,13 +36,17 @@ async def test_sync_tailor_returns_pdf_and_preserves_basics(client: AsyncClient,
     assert payload["resume"]["work"][0]["summary"] == "Tailored summary for Covai Labs"
     assert payload["resume"]["work"][0]["highlights"] == ["Tailored impact for Covai Labs"]
     assert payload["resume"]["skills"][0]["name"] == "Product Strategy"
-    assert payload["resume"]["skills"] == [
-        {
-            "name": "Product Strategy",
-            "level": "",
-            "keywords": ["Roadmap Planning", "Go-to-Market (GTM)"],
-        }
-    ]
+    assert len(payload["resume"]["skills"]) == 2
+    assert payload["resume"]["skills"][0] == {
+        "name": "Product Strategy",
+        "level": "",
+        "keywords": ["Roadmap Planning", "Go-to-Market (GTM)"],
+    }
+    assert payload["resume"]["skills"][1] == {
+        "name": "Invented Space Tech",
+        "level": "",
+        "keywords": ["Warp Drive"],
+    }
     assert payload["pdf_base64"]
 
 
