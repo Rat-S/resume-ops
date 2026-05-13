@@ -1,0 +1,427 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from pydantic import BaseModel
+
+from resume_ops_api.core.config import Settings
+from resume_ops_api.core.exceptions import AppError, ResumeValidationError
+from resume_ops_api.services.llm import StructuredLLMClient
+from resume_ops_api.services.renderer import ResumeRenderer
+from resume_ops_api.services.schema import ResumeSchemaValidator
+from resume_ops_api.services.themes import ThemeService
+
+
+# ---------------------------------------------------------------------------
+# Schema validation tests
+# ---------------------------------------------------------------------------
+
+
+class TestResumeSchemaValidator:
+    """Tests for ResumeSchemaValidator using the real JSON Resume schema."""
+
+    @pytest.fixture
+    def schema_path(self) -> Path:
+        return Path(__file__).resolve().parent.parent / "src" / "resume_ops_api" / "resources" / "resume_schema.json"
+
+    @pytest.fixture
+    def validator(self, schema_path: Path) -> ResumeSchemaValidator:
+        return ResumeSchemaValidator(schema_path)
+
+    def test_valid_minimal_resume_passes_validation(self, validator: ResumeSchemaValidator) -> None:
+        """A minimal but type-correct payload passes validation."""
+        minimal = {
+            "basics": {
+                "name": "John Doe",
+                "email": "john@example.com",
+            },
+        }
+        # Should not raise
+        validator.validate(minimal, context="minimal resume")
+
+    def test_valid_resume_with_work_array_passes(self, validator: ResumeSchemaValidator) -> None:
+        """A fuller payload with work entries still passes."""
+        payload = {
+            "basics": {"name": "Jane", "email": "jane@example.com"},
+            "work": [
+                {"name": "Acme Corp", "position": "Engineer", "startDate": "2020-01-01"},
+            ],
+            "skills": [{"name": "Python"}],
+        }
+        validator.validate(payload, context="full resume")
+
+    def test_basics_not_object_raises_validation_error(self, validator: ResumeSchemaValidator) -> None:
+        with pytest.raises(ResumeValidationError) as exc_info:
+            validator.validate({"basics": "not-an-object"}, context="bad basics")
+        err = exc_info.value
+        assert "failed JSON Resume schema validation" in err.message
+        assert err.code == "resume_validation_failed"
+        assert err.status_code == 422
+        assert err.details["context"] == "bad basics"
+        assert len(err.details["errors"]) >= 1
+        error_paths = [e["path"] for e in err.details["errors"]]
+        assert any("basics" in p for p in error_paths)
+
+    def test_work_not_array_raises_validation_error(self, validator: ResumeSchemaValidator) -> None:
+        with pytest.raises(ResumeValidationError) as exc_info:
+            validator.validate({"basics": {"name": "T"}, "work": "not-array"}, context="bad work")
+        error_paths = [e["path"] for e in exc_info.value.details["errors"]]
+        assert any("work" in p for p in error_paths)
+
+    def test_validation_error_includes_sorted_errors(self, validator: ResumeSchemaValidator) -> None:
+        invalid = {
+            "basics": "bad",
+            "work": "also-bad",
+        }
+        with pytest.raises(ResumeValidationError) as exc_info:
+            validator.validate(invalid, context="multi-error resume")
+        paths = [e["path"] for e in exc_info.value.details["errors"]]
+        # Errors are sorted by path — should be stable
+        assert paths == sorted(paths)
+
+    def test_custom_status_code_on_validation_error(self, validator: ResumeSchemaValidator) -> None:
+        with pytest.raises(ResumeValidationError) as exc_info:
+            validator.validate({"basics": "bad"}, context="custom status", status_code=400)
+        assert exc_info.value.status_code == 400
+
+    def test_validation_error_details_structure(self, validator: ResumeSchemaValidator) -> None:
+        """Each error entry has 'path' and 'message' keys."""
+        with pytest.raises(ResumeValidationError) as exc_info:
+            validator.validate({"basics": "bad-type"}, context="structure test")
+        for err_entry in exc_info.value.details["errors"]:
+            assert "path" in err_entry
+            assert "message" in err_entry
+
+    def test_validate_with_nonexistent_schema_path(self, tmp_path: Path) -> None:
+        bad_path = tmp_path / "nonexistent.json"
+        with pytest.raises(FileNotFoundError):
+            ResumeSchemaValidator(bad_path)
+
+    def test_validate_with_invalid_json_schema(self, tmp_path: Path) -> None:
+        bad_json = tmp_path / "bad_schema.json"
+        bad_json.write_text("{invalid json")
+        with pytest.raises(json.JSONDecodeError):
+            ResumeSchemaValidator(bad_json)
+
+
+# ---------------------------------------------------------------------------
+# Theme service tests
+# ---------------------------------------------------------------------------
+
+
+class TestThemeService:
+    """Tests for ThemeService allowlist validation and resolution."""
+
+    @pytest.fixture
+    def theme_service(self) -> ThemeService:
+        return ThemeService(
+            allowed_themes=["jsonresume-theme-stackoverflow", "jsonresume-theme-even"],
+            default_theme="jsonresume-theme-stackoverflow",
+        )
+
+    def test_resolve_default_theme_when_candidate_is_none(self, theme_service: ThemeService) -> None:
+        result = theme_service.resolve(None)
+        assert result == "jsonresume-theme-stackoverflow"
+
+    def test_resolve_default_theme_when_candidate_is_empty(self, theme_service: ThemeService) -> None:
+        result = theme_service.resolve("")
+        assert result == "jsonresume-theme-stackoverflow"
+
+    def test_resolve_returns_trimmed_candidate(self, theme_service: ThemeService) -> None:
+        result = theme_service.resolve("  jsonresume-theme-even  ")
+        assert result == "jsonresume-theme-even"
+
+    def test_resolve_raises_for_disallowed_theme(self, theme_service: ThemeService) -> None:
+        with pytest.raises(AppError) as exc_info:
+            theme_service.resolve("jsonresume-theme-onepage")
+        assert exc_info.value.code == "invalid_theme"
+        assert exc_info.value.status_code == 400
+        assert "not allowed" in exc_info.value.message
+        assert "allowed_themes" in exc_info.value.details
+
+    def test_resolve_raises_for_unknown_theme_with_details(self, theme_service: ThemeService) -> None:
+        with pytest.raises(AppError) as exc_info:
+            theme_service.resolve("nonexistent-theme")
+        assert exc_info.value.details["allowed_themes"] == [
+            "jsonresume-theme-stackoverflow",
+            "jsonresume-theme-even",
+        ]
+
+    def test_constructor_raises_when_default_not_in_allowed(self) -> None:
+        with pytest.raises(AppError) as exc_info:
+            ThemeService(
+                allowed_themes=["jsonresume-theme-even"],
+                default_theme="jsonresume-theme-stackoverflow",
+            )
+        assert exc_info.value.code == "invalid_theme_configuration"
+        assert exc_info.value.status_code == 500
+        assert "DEFAULT_THEME" in exc_info.value.message
+
+    def test_single_allowed_theme_with_matching_default(self) -> None:
+        svc = ThemeService(
+            allowed_themes=["jsonresume-theme-stackoverflow"],
+            default_theme="jsonresume-theme-stackoverflow",
+        )
+        assert svc.resolve(None) == "jsonresume-theme-stackoverflow"
+        assert svc.resolve("jsonresume-theme-stackoverflow") == "jsonresume-theme-stackoverflow"
+
+
+# ---------------------------------------------------------------------------
+# LLM client tests
+# ---------------------------------------------------------------------------
+
+
+class TestStructuredLLMClient:
+    """Tests for StructuredLLMClient using mocked completion functions."""
+
+    class _FakeResponseModel(BaseModel):
+        name: str
+        value: int
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_with_instructor_success(self) -> None:
+        """When instructor returns the response model directly."""
+        expected = self._FakeResponseModel(name="test", value=42)
+
+        client = StructuredLLMClient(completion_fn=AsyncMock())
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(return_value=expected)
+            mock_instructor.return_value = mock_client
+
+            result = await client.generate_structured(
+                model="openai/gpt-4o-mini",
+                system_prompt="You are helpful.",
+                user_prompt="Say hello.",
+                response_model=self._FakeResponseModel,
+            )
+
+        assert result == expected
+        assert result.name == "test"
+        assert result.value == 42
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_falls_back_to_json_parsing(self) -> None:
+        """When instructor fails, falls back to raw JSON completion."""
+        async def mock_completion(**kwargs):
+            return {
+                "choices": [
+                    {"message": {"content": '{"name": "fallback", "value": 99}'}}
+                ]
+            }
+
+        client = StructuredLLMClient(completion_fn=mock_completion)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("instructor failed"))
+            mock_instructor.return_value = mock_client
+
+            result = await client.generate_structured(
+                model="openai/gpt-4o-mini",
+                system_prompt="You are helpful.",
+                user_prompt="Say hello.",
+                response_model=self._FakeResponseModel,
+            )
+
+        assert result.name == "fallback"
+        assert result.value == 99
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_raises_app_error_on_both_failures(self) -> None:
+        """When both instructor and raw completion fail, raises AppError."""
+        async def mock_completion(**kwargs):
+            raise RuntimeError("raw completion also failed")
+
+        client = StructuredLLMClient(completion_fn=mock_completion)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("instructor failed"))
+            mock_instructor.return_value = mock_client
+
+            with pytest.raises(AppError) as exc_info:
+                await client.generate_structured(
+                    model="anthropic/claude-3-haiku",
+                    system_prompt="You are helpful.",
+                    user_prompt="Say hello.",
+                    response_model=self._FakeResponseModel,
+                )
+
+        assert exc_info.value.code == "llm_generation_failed"
+        assert exc_info.value.status_code == 502
+        assert "anthropic/claude-3-haiku" in exc_info.value.message
+        assert exc_info.value.details["model"] == "anthropic/claude-3-haiku"
+        assert "raw completion also failed" in exc_info.value.details["error"]
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_raises_when_fallback_json_is_invalid(self) -> None:
+        """When the fallback JSON content is malformed."""
+        async def mock_completion(**kwargs):
+            return {
+                "choices": [
+                    {"message": {"content": "not valid json at all"}}
+                ]
+            }
+
+        client = StructuredLLMClient(completion_fn=mock_completion)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("instructor failed"))
+            mock_instructor.return_value = mock_client
+
+            with pytest.raises(AppError) as exc_info:
+                await client.generate_structured(
+                    model="openai/gpt-4o-mini",
+                    system_prompt="You are helpful.",
+                    user_prompt="Say hello.",
+                    response_model=self._FakeResponseModel,
+                )
+
+        assert exc_info.value.code == "llm_generation_failed"
+        assert exc_info.value.status_code == 502
+
+    def test_default_completion_fn_is_set(self) -> None:
+        client = StructuredLLMClient()
+        # Should default to litellm.acompletion
+        from litellm import acompletion
+
+        assert client.completion_fn is acompletion
+
+
+# ---------------------------------------------------------------------------
+# Renderer tests
+# ---------------------------------------------------------------------------
+
+
+class TestResumeRenderer:
+    """Tests for ResumeRenderer with mocked subprocess and file system."""
+
+    @pytest.fixture
+    def renderer(self) -> ResumeRenderer:
+        return ResumeRenderer(binary="fake-resumed")
+
+    def test_resolve_binary_uses_which_first(self, renderer: ResumeRenderer) -> None:
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/local/bin/fake-resumed"):
+            resolved = renderer._resolve_binary()
+            assert resolved == "/usr/local/bin/fake-resumed"
+
+    def test_resolve_binary_falls_back_to_local_npm(self, renderer: ResumeRenderer) -> None:
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value=None):
+            with patch.object(Path, "exists", return_value=True):
+                with patch.object(Path, "home", return_value=Path("/home/testuser")):
+                    resolved = renderer._resolve_binary()
+                    assert resolved == "/home/testuser/.npm-global/bin/fake-resumed"
+
+    def test_resolve_binary_returns_original_when_not_found(self, renderer: ResumeRenderer) -> None:
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value=None):
+            with patch.object(Path, "exists", return_value=False):
+                resolved = renderer._resolve_binary()
+                assert resolved == "fake-resumed"
+
+    @pytest.mark.asyncio
+    async def test_render_success(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
+        output_dir = tmp_path / "output"
+
+        async def mock_communicate():
+            return b"", b""
+
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.communicate = AsyncMock(side_effect=mock_communicate)
+
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
+                # Pre-create a valid PDF in the expected output path so
+                # the post-render header check passes
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / "output.pdf").write_bytes(b"%PDF-1.4 fake")
+                result = await renderer.render(
+                    resume={"basics": {"name": "Test"}},
+                    theme="jsonresume-theme-stackoverflow",
+                    output_dir=output_dir,
+                )
+
+        assert result == output_dir / "output.pdf"
+        assert (output_dir / "resume.json").exists()
+        assert (output_dir / "output.pdf").exists()
+
+    @pytest.mark.asyncio
+    async def test_render_writes_resume_json(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
+        output_dir = tmp_path / "output"
+        resume_data = {"basics": {"name": "Jane Doe", "email": "jane@example.com"}}
+
+        async def mock_communicate():
+            return b"", b""
+
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.communicate = AsyncMock(side_effect=mock_communicate)
+
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
+                # Pre-create PDF header
+                pdf_path = output_dir / "output.pdf"
+                output_dir.mkdir(parents=True, exist_ok=True)
+                pdf_path.write_bytes(b"%PDF-1.4 fake")
+
+                await renderer.render(
+                    resume=resume_data,
+                    theme="jsonresume-theme-stackoverflow",
+                    output_dir=output_dir,
+                )
+
+        written = json.loads((output_dir / "resume.json").read_text(encoding="utf-8"))
+        assert written == resume_data
+
+    @pytest.mark.asyncio
+    async def test_render_raises_on_nonzero_returncode(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
+        output_dir = tmp_path / "output"
+
+        async def mock_communicate():
+            return b"", b"rendering error: theme not found"
+
+        mock_process = MagicMock()
+        mock_process.returncode = 1
+        mock_process.communicate = AsyncMock(side_effect=mock_communicate)
+
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
+                with pytest.raises(AppError) as exc_info:
+                    await renderer.render(
+                        resume={"basics": {"name": "Test"}},
+                        theme="jsonresume-theme-stackoverflow",
+                        output_dir=output_dir,
+                    )
+
+        assert exc_info.value.code == "render_failed"
+        assert exc_info.value.status_code == 500
+        assert "rendering error" in exc_info.value.details["stderr"]
+
+    @pytest.mark.asyncio
+    async def test_render_raises_when_output_not_pdf(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
+        output_dir = tmp_path / "output"
+
+        async def mock_communicate():
+            return b"", b""
+
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.communicate = AsyncMock(side_effect=mock_communicate)
+
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
+                # Pre-create a file that is NOT a valid PDF
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / "output.pdf").write_bytes(b"NOT A PDF FILE")
+                with pytest.raises(AppError) as exc_info:
+                    await renderer.render(
+                        resume={"basics": {"name": "Test"}},
+                        theme="jsonresume-theme-stackoverflow",
+                        output_dir=output_dir,
+                    )
+
+        assert exc_info.value.code == "invalid_pdf_output"
+        assert exc_info.value.status_code == 500
+        assert "not a valid PDF" in exc_info.value.message

@@ -35,7 +35,10 @@ async def async_main(args: argparse.Namespace) -> int:
         return 1
 
     if not jd_path.is_file():
-        logging.error(f"Job Description file not found: {jd_path}")
+        logging.error(
+            f"Job Description must be a file, not a directory: '{jd_path}'\n"
+            "Example: poetry run resume-ops generate --jd .local/testing/jd/workday_tam.md [OPTIONS]"
+        )
         return 1
 
     try:
