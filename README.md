@@ -2,10 +2,6 @@
 
 Podman-first FastAPI service for tailoring a JSON Resume to a job description while protecting immutable resume fields.
 
-## License
-
-This project is licensed under `AGPL-3.0-only`. See [LICENSE](/home/anu/Workspace/Biz/resume-ops/LICENSE).
-
 ## What It Does
 
 The service accepts:
@@ -301,9 +297,68 @@ uv run python -m resume_ops_api
 
 That requires the Python dependencies from `pyproject.toml` to be available in your local environment.
 
+## CLI Usage
+
+You can also use `resume-ops` directly from your terminal to generate tailored resumes locally without starting the API server. You have two options for running the CLI:
+
+### Option 1: Via Container (Recommended)
+
+Since the Podman image already bundles all dependencies (including Node.js and the PDF renderer), you can run the CLI through the container. To make file paths work seamlessly, mount your current working directory to the same path inside the container:
+
+```bash
+podman run --rm \
+  --env-file .env \
+  -v "$(pwd)":"$(pwd)" \
+  -w "$(pwd)" \
+  resume-ops \
+  resume-ops \
+    --resume ./my-master-resume.json \
+    --jd ./target-job.md \
+    --output ./tailored-resume.pdf \
+    --theme jsonresume-theme-stackoverflow
+```
+
+### Option 2: Running Natively (Local Environment)
+
+If you prefer to run it natively without a container, you can install the CLI directly into your Python environment:
+
+```bash
+uv pip install -e .
+```
+
+**Important Requirement for Native Usage:** The project relies on `resumed` to render PDFs. You must have Node.js installed and manually install the renderer and any themes you wish to use:
+
+```bash
+npm install -g resumed jsonresume-theme-stackoverflow
+```
+
+Once installed natively, you can run the command directly:
+
+```bash
+resume-ops \
+  --resume my-master-resume.json \
+  --jd target-job.md \
+  --output ./tailored-resume.pdf \
+  --output-json ./tailored-resume.json \
+  --theme jsonresume-theme-stackoverflow
+```
+
+**CLI Options:**
+- `--resume`: (Required) Path to the master JSON resume.
+- `--jd`: (Required) Path to the text or markdown job description.
+- `--output`: (Required) Path to save the resulting PDF.
+- `--output-json`: (Optional) Path to save the intermediate tailored JSON resume.
+- `--theme`: (Optional) The theme to use for rendering (must be in `ALLOWED_THEMES`).
+
 ## Current Limitations
 
 - No authentication is built in
 - Background execution is single-process and intended for one API worker
 - Theme support is allowlist-based, not dynamic package installation at request time
 - The service relies on `resumed` being installed in the runtime environment
+
+
+
+## License
+
+This project is licensed under `AGPL-3.0-only`. See [LICENSE](/home/anu/Workspace/Biz/resume-ops/LICENSE).

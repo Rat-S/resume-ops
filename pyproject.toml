@@ -24,6 +24,9 @@ dependencies = [
   "uvicorn>=0.32.0",
 ]
 
+[project.scripts]
+resume-ops = "resume_ops_api.cli:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3.3",
