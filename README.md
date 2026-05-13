@@ -2,6 +2,10 @@
 
 Podman-first FastAPI service for tailoring a JSON Resume to a job description while protecting immutable resume fields.
 
+## License
+
+This project is licensed under `AGPL-3.0-only`. See [LICENSE](/home/anu/Workspace/Biz/resume-ops/LICENSE).
+
 ## What It Does
 
 The service accepts:

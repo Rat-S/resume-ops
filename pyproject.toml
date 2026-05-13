@@ -7,6 +7,7 @@ name = "resume-ops-api"
 version = "0.1.0"
 description = "Podman-first FastAPI service for structured resume tailoring."
 readme = "README.md"
+license = "AGPL-3.0-only"
 requires-python = ">=3.12"
 dependencies = [
   "aiosqlite>=0.20.0",
@@ -35,4 +36,3 @@ packages = ["src/resume_ops_api"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-
