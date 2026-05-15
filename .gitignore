@@ -7,3 +7,4 @@ data/
 .local/ 
 .agents/ 
 .env
+master-resume.json

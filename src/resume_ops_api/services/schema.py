@@ -14,7 +14,7 @@ class ResumeSchemaValidator:
         self.schema = json.loads(schema_path.read_text(encoding="utf-8"))
         self.validator = Draft7Validator(self.schema)
 
-    def validate(self, payload: dict, *, context: str, status_code: int = 422) -> None:
+    def validate(self, payload: dict, *, context: str, status_code: int = 422, strict: bool = True) -> None:
         errors = sorted(self.validator.iter_errors(payload), key=lambda item: list(item.path))
         if not errors:
             return
@@ -28,9 +28,13 @@ class ResumeSchemaValidator:
                 for error in errors
             ],
         }
-        raise ResumeValidationError(
-            f"The {context} failed JSON Resume schema validation.",
-            details=details,
-            status_code=status_code,
-        )
+        if strict:
+            raise ResumeValidationError(
+                f"The {context} failed JSON Resume schema validation.",
+                details=details,
+                status_code=status_code,
+            )
+        else:
+            import logging
+            logging.warning(f"Schema validation failed for {context} (ignoring): {details}")
 

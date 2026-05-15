@@ -4,10 +4,18 @@ ARG NPM_THEMES="jsonresume-theme-stackoverflow"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Use system Chromium instead of bundled puppeteer Chromium (smaller image, no sandbox issues)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates nodejs npm \
-    && npm install -g resumed ${NPM_THEMES} \
+    && apt-get install -y --no-install-recommends \
+        curl ca-certificates nodejs npm \
+        # Chromium and its runtime deps for PDF rendering via puppeteer
+        chromium chromium-sandbox \
+        # Fonts for resume rendering
+        fonts-liberation fonts-noto-color-emoji \
+    && npm install -g resumed puppeteer ${NPM_THEMES} \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -44,7 +44,7 @@ class ServiceContainer:
         try:
             with open(self.settings.master_resume_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            self.validator.validate(data)
+            self.validator.validate(data, context="master resume")
             self._master_resume = data
             return self._master_resume
         except Exception as e:

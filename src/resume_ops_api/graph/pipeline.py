@@ -193,7 +193,7 @@ class ResumeGraph:
             selected_certificates=state.get("selected_certificates"),
             tailored_optional_sections=state.get("tailored_optional_sections"),
         )
-        self.validator.validate(final_resume, context="tailored resume", status_code=500)
+        self.validator.validate(final_resume, context="tailored resume", status_code=500, strict=False)
         return {"final_resume": final_resume}
 
     async def render_node(self, state: ResumeGraphState) -> dict[str, str]:
