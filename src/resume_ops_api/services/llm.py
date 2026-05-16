@@ -23,7 +23,12 @@ class StructuredLLMClient:
         system_prompt: str,
         user_prompt: str,
         response_model: type[ModelT],
+        session_id: str | None = None,
     ) -> ModelT:
+        extra_headers: dict[str, str] = {}
+        if session_id:
+            extra_headers["X-Session-Id"] = session_id
+
         # 1. First, try strict JSON Schema mode (OpenAI Structured Outputs)
         try:
             client = instructor.from_litellm(self.completion_fn, mode=instructor.Mode.JSON_OAI, max_retries=2)
@@ -35,6 +40,7 @@ class StructuredLLMClient:
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.2,
+                extra_headers=extra_headers or None,
             )
             if isinstance(response, response_model):
                 return response
@@ -53,6 +59,7 @@ class StructuredLLMClient:
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.2,
+                extra_headers=extra_headers or None,
             )
             if isinstance(response, response_model):
                 return response
@@ -70,6 +77,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 response_format={"type": "json_object"},
+                extra_headers=extra_headers or None,
             )
             content = completion["choices"][0]["message"]["content"]
             return response_model.model_validate(json.loads(content))

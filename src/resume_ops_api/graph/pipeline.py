@@ -86,6 +86,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=StrategyOutput,
+            session_id=state.get("job_id"),
         )
         return {"strategy": strategy}
 
@@ -102,6 +103,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=WorkTailoringOutput,
+            session_id=state.get("job_id"),
         )
         return {"tailored_work": output}
 
@@ -118,6 +120,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=EducationTailoringOutput,
+            session_id=state.get("job_id"),
         )
         return {"tailored_education": output}
 
@@ -132,6 +135,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=SkillsTailoringOutput,
+            session_id=state.get("job_id"),
         )
         return {"tailored_skills": output}
 
@@ -148,6 +152,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=ProjectsTailoringOutput,
+            session_id=state.get("job_id"),
         )
         return {"tailored_projects": output}
 
@@ -164,6 +169,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=CertificatesSelectionOutput,
+            session_id=state.get("job_id"),
         )
         return {"selected_certificates": output}
 
@@ -180,6 +186,7 @@ class ResumeGraph:
             system_prompt=system,
             user_prompt=user,
             response_model=OptionalSectionsOutput,
+            session_id=state.get("job_id"),
         )
         return {"tailored_optional_sections": output}
 
