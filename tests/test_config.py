@@ -67,8 +67,8 @@ class TestSettingsDefaults:
 
     def test_default_theme_and_allowed_themes(self) -> None:
         settings = _clean_settings()
-        assert settings.default_theme == "jsonresume-theme-stackoverflow"
-        assert settings.allowed_themes == ["jsonresume-theme-stackoverflow"]
+        assert settings.default_theme == "@deadrat/jsonresume-theme-stackoverflow"
+        assert settings.allowed_themes == ["@deadrat/jsonresume-theme-stackoverflow"]
 
     def test_default_max_concurrent_jobs(self) -> None:
         settings = _clean_settings()
@@ -208,7 +208,7 @@ class TestSettingsFieldValidators:
 
     def test_parse_allowed_themes_from_none_returns_default(self) -> None:
         settings = _clean_settings(allowed_themes=None)  # type: ignore[arg-type]
-        assert settings.allowed_themes == ["jsonresume-theme-stackoverflow"]
+        assert settings.allowed_themes == ["@deadrat/jsonresume-theme-stackoverflow"]
 
     def test_default_theme_strips_whitespace(self) -> None:
         settings = _clean_settings(default_theme="  jsonresume-theme-even  ")
