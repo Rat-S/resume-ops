@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ARG NPM_THEMES="jsonresume-theme-stackoverflow"
+ARG NPM_THEMES="@deadrat/jsonresume-theme-stackoverflow"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

@@ -152,14 +152,13 @@ class ResumeMerger:
             if not original:
                 continue
             updated = copy.deepcopy(original)
+            # Strip fields that the theme does not use and we do not want tailored
+            for field in ("keywords", "roles", "entity", "type"):
+                updated.pop(field, None)
             if project.description is not None:
                 updated["description"] = project.description.strip()
             if project.highlights is not None:
                 updated["highlights"] = _clean_string_list(project.highlights)
-            if project.keywords is not None:
-                updated["keywords"] = _clean_string_list(project.keywords)
-            if project.roles is not None:
-                updated["roles"] = _clean_string_list(project.roles)
             merged_projects.append(updated)
         merged["projects"] = merged_projects
 

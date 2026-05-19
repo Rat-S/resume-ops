@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     skills_model: str = "openai/gpt-4o-mini"
     projects_model: str = "openai/gpt-4o-mini"
     optional_sections_model: str = "openai/gpt-4o-mini"
-    default_theme: str = "jsonresume-theme-stackoverflow"
-    allowed_themes: list[str] = Field(default_factory=lambda: ["jsonresume-theme-stackoverflow"])
+    default_theme: str = "@deadrat/jsonresume-theme-stackoverflow"
+    allowed_themes: list[str] = Field(default_factory=lambda: ["@deadrat/jsonresume-theme-stackoverflow"])
     max_concurrent_jobs: int = 2
     callback_timeout_seconds: int = 5
     openai_api_key: str | None = None
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     @classmethod
     def parse_allowed_themes(cls, value: object) -> list[str]:
         if value is None:
-            return ["jsonresume-theme-stackoverflow"]
+            return ["@deadrat/jsonresume-theme-stackoverflow"]
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
         if isinstance(value, list):

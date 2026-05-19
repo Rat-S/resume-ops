@@ -18,7 +18,7 @@ class FakeStructuredLLMClient:
         self.resume = resume
         self.fail_model = fail_model
 
-    async def generate_structured(self, *, model: str, system_prompt: str, user_prompt: str, response_model: type):
+    async def generate_structured(self, *, model: str, system_prompt: str, user_prompt: str, response_model: type, **kwargs):
         if self.fail_model == model:
             raise AppError("Synthetic LLM failure.", code="synthetic_llm_failure", status_code=502)
         if response_model.__name__ == "StrategyOutput":
@@ -67,8 +67,6 @@ class FakeStructuredLLMClient:
                         "name": project["name"],
                         "description": f"Tailored: {project.get('description', project['name'])}",
                         "highlights": ["Tailored project evidence"],
-                        "keywords": project.get("keywords", []),
-                        "roles": project.get("roles", []),
                     }
                     for project in projects
                 ]

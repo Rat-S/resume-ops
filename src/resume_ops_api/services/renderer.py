@@ -40,6 +40,8 @@ class ResumeRenderer:
             theme,
             "-o",
             str(pdf_path),
+            "--puppeteer-arg=--no-sandbox",
+            "--puppeteer-arg=--disable-setuid-sandbox",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

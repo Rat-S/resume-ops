@@ -43,8 +43,6 @@ class ProjectEntryTailoring(BaseModel):
     name: str
     description: str | None = None
     highlights: list[str] | None = None
-    keywords: list[str] | None = None
-    roles: list[str] | None = None
 
 
 class ProjectsTailoringOutput(BaseModel):

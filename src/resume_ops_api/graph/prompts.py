@@ -70,9 +70,9 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
 
 def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
-        "Choose only from existing projects. You may omit, reorder, and tailor descriptions, highlights, keywords, and roles. "
+        "Choose only from existing projects. You may omit, reorder, and tailor descriptions and highlights. "
         "Do not invent new project names or metadata. "
-        "Return structured JSON with this key: projects (a list of tailored project objects)."
+        "Return structured JSON with this key: projects (a list of tailored project objects with name, description, and highlights)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
