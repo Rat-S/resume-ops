@@ -122,6 +122,9 @@ def basics_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
     system = (
         "Tailor only the professional label (headline/title) and the main summary paragraph "
         "of the basics section. "
+        "CRITICAL: The tailored summary MUST explicitly retain or include the mention of "
+        "your education if it can be high signalling. For example, if you have an MBA from IIM Trichy, "
+        "you can mention it. "
         "Do not invent unsupported responsibilities or achievements. "
         "Do not modify other basics details like name, email, phone, location, profiles, or url. "
         "Return structured JSON with keys: label and summary."
