@@ -27,18 +27,42 @@ def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, 
 def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     work_items = resume.get("work", [])
     N = len(work_items)
-    recent_count = round(N * 0.6) if N >= 3 else N
     
     rules = []
-    if N >= 3 and recent_count < N:
-        recent_names = [w.get("name", f"Item {i+1}") for i, w in enumerate(work_items[:recent_count])]
-        older_names = [w.get("name", f"Item {i+1}") for i, w in enumerate(work_items[recent_count:])]
+    if N <= 2:
+        rules.append("- Tailor the highlights normally by retaining only the highly relevant accomplishments and eliminating unrelated ones.")
+    elif N == 3:
         rules.append(
-            f"- For your recent roles ({', '.join(recent_names)}): Tailor comprehensive highlights with normal level of detail.\n"
-            f"- For your older roles ({', '.join(older_names)}): You MUST write a concise summary and strictly limit the highlights list to exactly 1 or 2 high-impact bullet points."
+            f"- For {work_items[0].get('name', 'Item 1')} and {work_items[1].get('name', 'Item 2')}: Tailor normally by retaining only the highly relevant accomplishments and eliminating unrelated ones.\n"
+            f"- For {work_items[2].get('name', 'Item 3')}: Limit highlights strictly to 1 or 2 bullet points, keeping only the most relevant accomplishments and discarding the rest."
         )
     else:
-        rules.append("- Tailor the highlights and summary for all roles with a normal level of detail.")
+        # N >= 4: partition into 4 tiers:
+        # T1 (oldest 20%): max(1, round(N * 0.2)) items
+        # T2 (next 20%): max(1, round(N * 0.2)) items
+        # T3 (next 20%): max(1, round(N * 0.2)) items
+        # T4 (newest remaining items - top 40%)
+        t1_size = max(1, round(N * 0.2))
+        t2_size = max(1, round(N * 0.2))
+        t3_size = max(1, round(N * 0.2))
+        t4_size = N - t1_size - t2_size - t3_size
+        
+        t4_items = work_items[:t4_size]
+        t3_items = work_items[t4_size : t4_size + t3_size]
+        t2_items = work_items[t4_size + t3_size : t4_size + t3_size + t2_size]
+        t1_items = work_items[t4_size + t3_size + t2_size :]
+        
+        t4_names = [w.get("name", f"Item {i+1}") for i, w in enumerate(t4_items)]
+        t3_names = [w.get("name", f"Item {i+t4_size+1}") for i, w in enumerate(t3_items)]
+        t2_names = [w.get("name", f"Item {i+t4_size+t3_size+1}") for i, w in enumerate(t2_items)]
+        t1_names = [w.get("name", f"Item {i+t4_size+t3_size+t2_size+1}") for i, w in enumerate(t1_items)]
+        
+        rules.append(
+            f"- For {', '.join(t4_names)}: Tailor normally by retaining only the highly relevant highlights and eliminating unrelated ones, maintaining detail/bullets for matching skills.\n"
+            f"- For {', '.join(t3_names)}: Include only as many highlights as makes sense (medium detail), focusing strictly on relevant achievements and eliminating unrelated ones.\n"
+            f"- For {', '.join(t2_names)}: Limit highlights strictly to 1 or 2 bullet points if essential, keeping only the most relevant accomplishments and discarding the rest.\n"
+            f"- For {', '.join(t1_names)}: Limit highlights strictly to exactly 1 bullet point focusing on the single most relevant accomplishment, and discard all other points."
+        )
 
     system = (
         "Tailor only the summary and highlights for each work item. "

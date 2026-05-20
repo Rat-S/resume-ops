@@ -13,6 +13,7 @@ from resume_ops_api.graph.models import (
     BasicsTailoringOutput,
     WorkEntryTailoring,
 )
+from resume_ops_api.graph.prompts import work_prompt
 
 
 def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
@@ -154,3 +155,28 @@ def test_merger_preserves_all_work_highlights() -> None:
     assert len(merged["work"][2]["highlights"]) == 4
     assert len(merged["work"][3]["highlights"]) == 4
     assert len(merged["work"][4]["highlights"]) == 4
+
+
+def test_work_prompt_tier_partitioning() -> None:
+    # 7 work entries: Covai Labs, Taxilla, ValueLabs, IBM, LightMass, Convergys, Sutherland
+    resume = {
+        "work": [
+            {"name": "Covai Labs"},
+            {"name": "Taxilla"},
+            {"name": "ValueLabs"},
+            {"name": "IBM"},
+            {"name": "LightMass"},
+            {"name": "Convergys"},
+            {"name": "Sutherland"},
+        ]
+    }
+    system, _ = work_prompt(resume, "mock job", {})
+    # Sutherland is Tier 1 (1 bullet)
+    # Convergys is Tier 2 (1 or 2 bullets if essential)
+    # LightMass is Tier 3 (medium detail)
+    # Covai Labs, Taxilla, ValueLabs, IBM are Tier 4 (full detail)
+    assert "For Covai Labs, Taxilla, ValueLabs, IBM: Tailor normally by retaining only the highly relevant highlights" in system
+    assert "For LightMass: Include only as many highlights as makes sense" in system
+    assert "For Convergys: Limit highlights strictly to 1 or 2 bullet points if essential" in system
+    assert "For Sutherland: Limit highlights strictly to exactly 1 bullet point focusing on the single most relevant accomplishment" in system
+
