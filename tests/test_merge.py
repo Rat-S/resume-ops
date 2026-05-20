@@ -28,7 +28,7 @@ def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
             skills=[{"name": "Product Strategy", "keywords": ["Roadmap Planning"], "level": ""}]
         ),
         tailored_projects=ProjectsTailoringOutput(
-            projects=[{"name": sample_resume["projects"][0]["name"], "description": "Tailored description"}]
+            projects=[{"name": sample_resume["projects"][0]["name"], "description": "Tailored description", "keywords": ["Svelte", "Tailwind"]}]
         ),
         selected_certificates=CertificatesSelectionOutput(
             certificates=[sample_resume["certificates"][0]["name"]]
@@ -46,6 +46,7 @@ def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
     assert merged["education"][0]["courses"] == ["Relevant coursework"]
     assert merged["projects"][0]["name"] == original["projects"][0]["name"]
     assert merged["projects"][0]["description"] == "Tailored description"
+    assert merged["projects"][0]["keywords"] == ["Svelte", "Tailwind"]
     assert merged["certificates"][0] == original["certificates"][0]
     assert merged["interests"][0]["name"] == original["interests"][0]["name"]
 

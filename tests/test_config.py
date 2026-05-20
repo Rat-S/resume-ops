@@ -275,6 +275,52 @@ class TestGetSettings:
 
     def test_get_settings_ignores_unknown_env_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("UNKNOWN_SETTING", "should-be-ignored")
-        settings = Settings()
-        # Should not raise; unknown fields are ignored due to extra="ignore"
+        # Ensure model is defined for test context so it doesn't fail model validation
+        settings = Settings(default_model="openai/gpt-4o-mini")
         assert not hasattr(settings, "unknown_setting")
+
+
+class TestSettingsModelResolution:
+    """Verify that models resolve dynamically from default_model or fail fast."""
+
+    @pytest.fixture(autouse=True)
+    def clear_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        for var in [
+            "DEFAULT_MODEL",
+            "STRATEGY_MODEL",
+            "WORK_MODEL",
+            "EDUCATION_MODEL",
+            "SKILLS_MODEL",
+            "PROJECTS_MODEL",
+            "CERTIFICATES_MODEL",
+            "OPTIONAL_SECTIONS_MODEL",
+        ]:
+            monkeypatch.delenv(var, raising=False)
+
+    def test_resolve_from_default_model(self) -> None:
+        # If only default_model is set, all section models should resolve to it
+        settings = Settings(
+            _env_file=None,
+            default_model="openai/gpt-4o-mini",
+        )
+        assert settings.strategy_model == "openai/gpt-4o-mini"
+        assert settings.work_model == "openai/gpt-4o-mini"
+        assert settings.certificates_model == "openai/gpt-4o-mini"
+
+    def test_resolve_with_specific_override(self) -> None:
+        # If a specific section model is set, it overrides default_model
+        settings = Settings(
+            _env_file=None,
+            default_model="openai/gpt-4o-mini",
+            strategy_model="anthropic/claude-3-opus",
+        )
+        assert settings.strategy_model == "anthropic/claude-3-opus"
+        assert settings.work_model == "openai/gpt-4o-mini"
+        assert settings.certificates_model == "openai/gpt-4o-mini"
+
+    def test_fail_validation_when_no_model_set(self) -> None:
+        # If neither default nor specific models are set, it must fail validation
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError, match="Missing required model configurations"):
+            Settings(_env_file=None)
+

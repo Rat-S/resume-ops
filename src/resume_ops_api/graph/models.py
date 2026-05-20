@@ -43,6 +43,7 @@ class ProjectEntryTailoring(BaseModel):
     name: str
     description: str | None = None
     highlights: list[str] | None = None
+    keywords: list[str] = Field(default_factory=list)
 
 
 class ProjectsTailoringOutput(BaseModel):

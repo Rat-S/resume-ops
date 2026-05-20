@@ -35,6 +35,7 @@ class ResumeGraph:
         education_model: str,
         skills_model: str,
         projects_model: str,
+        certificates_model: str,
         optional_sections_model: str,
     ) -> None:
         self.llm_client = llm_client
@@ -46,6 +47,7 @@ class ResumeGraph:
         self.education_model = education_model
         self.skills_model = skills_model
         self.projects_model = projects_model
+        self.certificates_model = certificates_model
         self.optional_sections_model = optional_sections_model
         graph = StateGraph(ResumeGraphState)
         graph.add_node("strategy", self.strategy_node)
@@ -165,7 +167,7 @@ class ResumeGraph:
             state["strategy"].model_dump(),
         )
         output = await self.llm_client.generate_structured(
-            model=self.projects_model,
+            model=self.certificates_model,
             system_prompt=system,
             user_prompt=user,
             response_model=CertificatesSelectionOutput,

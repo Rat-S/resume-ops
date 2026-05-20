@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,12 +21,45 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/data")
     database_url: str | None = None
     master_resume_path: Path | None = None
-    strategy_model: str = "openai/gpt-4o-mini"
-    work_model: str = "openai/gpt-4o-mini"
-    education_model: str = "openai/gpt-4o-mini"
-    skills_model: str = "openai/gpt-4o-mini"
-    projects_model: str = "openai/gpt-4o-mini"
-    optional_sections_model: str = "openai/gpt-4o-mini"
+    
+    default_model: str | None = None
+    strategy_model: str | None = None
+    work_model: str | None = None
+    education_model: str | None = None
+    skills_model: str | None = None
+    projects_model: str | None = None
+    certificates_model: str | None = None
+    optional_sections_model: str | None = None
+
+    @model_validator(mode="after")
+    def resolve_and_validate_models(self) -> Settings:
+        model_fields = [
+            "strategy_model",
+            "work_model",
+            "education_model",
+            "skills_model",
+            "projects_model",
+            "certificates_model",
+            "optional_sections_model",
+        ]
+        for field in model_fields:
+            val = getattr(self, field)
+            if val is None or not val.strip():
+                if self.default_model and self.default_model.strip():
+                    setattr(self, field, self.default_model)
+                else:
+                    setattr(self, field, None)
+            else:
+                setattr(self, field, val.strip())
+
+        # Validate that all resolved models are set
+        missing = [f.upper() for f in model_fields if getattr(self, f) is None]
+        if missing:
+            raise ValueError(
+                f"Missing required model configurations. You must configure DEFAULT_MODEL "
+                f"or configure each of the following in your environment/.env: {', '.join(missing)}"
+            )
+        return self
     default_theme: str = "@deadrat/jsonresume-theme-stackoverflow"
     allowed_themes: list[str] = Field(default_factory=lambda: ["@deadrat/jsonresume-theme-stackoverflow"])
     max_concurrent_jobs: int = 2

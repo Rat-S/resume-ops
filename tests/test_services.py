@@ -289,6 +289,102 @@ class TestStructuredLLMClient:
 
         assert client.completion_fn is acompletion
 
+    @pytest.mark.asyncio
+    async def test_generate_structured_retries_on_transient_error(self) -> None:
+        """Verify that StructuredLLMClient retries on transient API/network errors."""
+        call_count = 0
+        async def mock_completion(**kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise RuntimeError("API timeout error")
+            return {
+                "choices": [
+                    {"message": {"content": '{"name": "retry-success", "value": 10}'}}
+                ]
+            }
+
+        client = StructuredLLMClient(completion_fn=mock_completion)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("instructor failed"))
+            mock_instructor.return_value = mock_client
+            
+            # Patch wait to none so the retries run instantly
+            from tenacity import wait_none
+            with patch("tenacity.wait_exponential", return_value=wait_none()):
+                result = await client.generate_structured(
+                    model="openai/gpt-4o-mini",
+                    system_prompt="You are helpful.",
+                    user_prompt="Say hello.",
+                    response_model=self._FakeResponseModel,
+                )
+
+        assert result.name == "retry-success"
+        assert result.value == 10
+        assert call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_does_not_retry_on_validation_error(self) -> None:
+        """Verify that StructuredLLMClient does not retry on Pydantic validation errors."""
+        call_count = 0
+        async def mock_completion(**kwargs):
+            nonlocal call_count
+            call_count += 1
+            # Return invalid json that fails schema validation
+            return {
+                "choices": [
+                    {"message": {"content": '{"invalid_key": "schema"}'}}
+                ]
+            }
+
+        client = StructuredLLMClient(completion_fn=mock_completion)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("instructor failed"))
+            mock_instructor.return_value = mock_client
+
+            from tenacity import wait_none
+            with patch("tenacity.wait_exponential", return_value=wait_none()):
+                with pytest.raises(AppError):
+                    await client.generate_structured(
+                        model="openai/gpt-4o-mini",
+                        system_prompt="You are helpful.",
+                        user_prompt="Say hello.",
+                        response_model=self._FakeResponseModel,
+                    )
+
+        # Should only execute once since validation failures shouldn't be retried
+        assert call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_unwraps_list_and_markdown_in_fallback(self) -> None:
+        """Verify that fallback parser handles list wraps and markdown code blocks."""
+        async def mock_completion(**kwargs):
+            return {
+                "choices": [
+                    {"message": {"content": "```json\n[{\n  \"name\": \"fallback-robust\",\n  \"value\": 42\n}]\n```"}}
+                ]
+            }
+
+        client = StructuredLLMClient(completion_fn=mock_completion)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            # Force instructors to fail to trigger step 3 fallback
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("instructor failed"))
+            mock_instructor.return_value = mock_client
+
+            result = await client.generate_structured(
+                model="openai/gpt-4o-mini",
+                system_prompt="You are helpful.",
+                user_prompt="Say hello.",
+                response_model=self._FakeResponseModel,
+            )
+
+        assert result.name == "fallback-robust"
+        assert result.value == 42
+
+
 
 # ---------------------------------------------------------------------------
 # Renderer tests

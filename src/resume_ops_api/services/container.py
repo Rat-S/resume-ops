@@ -80,6 +80,7 @@ def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
         education_model=settings.education_model,
         skills_model=settings.skills_model,
         projects_model=settings.projects_model,
+        certificates_model=settings.certificates_model,
         optional_sections_model=settings.optional_sections_model,
     )
     orchestrator = overrides.get("orchestrator") or TailorOrchestrator(

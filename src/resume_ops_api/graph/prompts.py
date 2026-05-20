@@ -29,6 +29,8 @@ def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str
         "Tailor only the summary and highlights for each work item. "
         "Do not change company names, positions, dates, locations, urls, or order. "
         "Do not invent unsupported responsibilities or achievements. "
+        "CRITICAL: The output 'work' list MUST align 1:1 in length and order with the input list. "
+        "Return EXACTLY the same number of work entries in the same order. Do not skip or drop any items. "
         "Return structured JSON with this key: work (a list of objects with summary and highlights)."
     )
     user = (
@@ -43,6 +45,8 @@ def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str
 def education_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
         "Tailor only education courses. Preserve institution, degree, dates, scores, and other metadata exactly. "
+        "CRITICAL: The output 'education' list MUST align 1:1 in length and order with the input list. "
+        "Return EXACTLY the same number of education entries in the same order. Do not skip or drop any items. "
         "Return structured JSON with this key: education (a list of objects with courses list)."
     )
     user = (
@@ -71,8 +75,10 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
 def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
         "Choose only from existing projects. You may omit, reorder, and tailor descriptions and highlights. "
-        "Do not invent new project names or metadata. "
-        "Return structured JSON with this key: projects (a list of tailored project objects with name, description, and highlights)."
+        "CRITICAL: You MUST keep the 'name' of each project EXACTLY as provided in the master resume. "
+        "Do not alter project names even slightly (e.g. spelling, casing, symbols), or they will be dropped during merge. "
+        "For each project, retain or tailor its 'keywords' list (technologies used) matching the StackOverflow layout theme. "
+        "Return structured JSON with this key: projects (a list of tailored project objects with name, description, highlights, and keywords)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
@@ -85,9 +91,9 @@ def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict
 
 def certificates_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
-        "Select at most 18 of the most relevant certificates by existing certificate names only. "
-        "Return the strongest subset for the target job, ordered by relevance. "
-        "Do not rewrite or invent certificate content. "
+        "Select only certificates that have a strong, direct mapping to the target role's priority keywords. "
+        "Return a maximum of 18, but fewer if they do not meet a strict relevance threshold. "
+        "Do not rewrite or invent certificate names; use existing certificate names verbatim. "
         "Return structured JSON with this key: certificates (a list of certificate names)."
     )
     user = (
