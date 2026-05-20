@@ -57,6 +57,8 @@ class TestSettingsDefaults:
             skills_model="openai/gpt-4o-mini",
             projects_model="openai/gpt-4o-mini",
             optional_sections_model="openai/gpt-4o-mini",
+            certificates_model="openai/gpt-4o-mini",
+            basics_model="openai/gpt-4o-mini",
         )
         assert settings.strategy_model == "openai/gpt-4o-mini"
         assert settings.work_model == "openai/gpt-4o-mini"
@@ -64,6 +66,8 @@ class TestSettingsDefaults:
         assert settings.skills_model == "openai/gpt-4o-mini"
         assert settings.projects_model == "openai/gpt-4o-mini"
         assert settings.optional_sections_model == "openai/gpt-4o-mini"
+        assert settings.certificates_model == "openai/gpt-4o-mini"
+        assert settings.basics_model == "openai/gpt-4o-mini"
 
     def test_default_theme_and_allowed_themes(self) -> None:
         settings = _clean_settings()
@@ -294,6 +298,7 @@ class TestSettingsModelResolution:
             "PROJECTS_MODEL",
             "CERTIFICATES_MODEL",
             "OPTIONAL_SECTIONS_MODEL",
+            "BASICS_MODEL",
         ]:
             monkeypatch.delenv(var, raising=False)
 
@@ -306,6 +311,7 @@ class TestSettingsModelResolution:
         assert settings.strategy_model == "openai/gpt-4o-mini"
         assert settings.work_model == "openai/gpt-4o-mini"
         assert settings.certificates_model == "openai/gpt-4o-mini"
+        assert settings.basics_model == "openai/gpt-4o-mini"
 
     def test_resolve_with_specific_override(self) -> None:
         # If a specific section model is set, it overrides default_model
@@ -317,6 +323,7 @@ class TestSettingsModelResolution:
         assert settings.strategy_model == "anthropic/claude-3-opus"
         assert settings.work_model == "openai/gpt-4o-mini"
         assert settings.certificates_model == "openai/gpt-4o-mini"
+        assert settings.basics_model == "openai/gpt-4o-mini"
 
     def test_fail_validation_when_no_model_set(self) -> None:
         # If neither default nor specific models are set, it must fail validation

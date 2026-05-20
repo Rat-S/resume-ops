@@ -12,6 +12,7 @@ from resume_ops_api.graph.models import (
     ProjectsTailoringOutput,
     SkillsTailoringOutput,
     WorkTailoringOutput,
+    BasicsTailoringOutput,
 )
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -45,15 +46,17 @@ class ResumeMerger:
         self,
         *,
         original_resume: dict[str, Any],
-        tailored_work: WorkTailoringOutput | None,
-        tailored_education: EducationTailoringOutput | None,
-        tailored_skills: SkillsTailoringOutput | None,
-        tailored_projects: ProjectsTailoringOutput | None,
-        selected_certificates: CertificatesSelectionOutput | None,
-        tailored_optional_sections: OptionalSectionsOutput | None,
+        tailored_basics: BasicsTailoringOutput | None = None,
+        tailored_work: WorkTailoringOutput | None = None,
+        tailored_education: EducationTailoringOutput | None = None,
+        tailored_skills: SkillsTailoringOutput | None = None,
+        tailored_projects: ProjectsTailoringOutput | None = None,
+        selected_certificates: CertificatesSelectionOutput | None = None,
+        tailored_optional_sections: OptionalSectionsOutput | None = None,
     ) -> dict[str, Any]:
         merged = copy.deepcopy(original_resume)
         merged["basics"] = copy.deepcopy(original_resume.get("basics", {}))
+        self._merge_basics(merged, original_resume, tailored_basics)
         self._merge_work(merged, original_resume, tailored_work)
         self._merge_education(merged, original_resume, tailored_education)
         self._merge_skills(merged, original_resume, tailored_skills)
@@ -61,6 +64,20 @@ class ResumeMerger:
         self._merge_certificates(merged, original_resume, selected_certificates)
         self._merge_optional_sections(merged, original_resume, tailored_optional_sections)
         return merged
+
+    def _merge_basics(
+        self,
+        merged: dict[str, Any],
+        original_resume: dict[str, Any],
+        tailored_basics: BasicsTailoringOutput | None,
+    ) -> None:
+        if not tailored_basics:
+            return
+        basics = merged.setdefault("basics", {})
+        if tailored_basics.label is not None:
+            basics["label"] = tailored_basics.label.strip()
+        if tailored_basics.summary is not None:
+            basics["summary"] = tailored_basics.summary.strip()
 
     def _merge_work(
         self,

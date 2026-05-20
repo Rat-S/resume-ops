@@ -82,6 +82,7 @@ def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
         projects_model=settings.projects_model,
         certificates_model=settings.certificates_model,
         optional_sections_model=settings.optional_sections_model,
+        basics_model=settings.basics_model,
     )
     orchestrator = overrides.get("orchestrator") or TailorOrchestrator(
         graph=graph,

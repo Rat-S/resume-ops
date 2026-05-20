@@ -63,6 +63,11 @@ class OptionalSectionsOutput(BaseModel):
     interests: list[InterestTailoring] = Field(default_factory=list)
 
 
+class BasicsTailoringOutput(BaseModel):
+    label: str | None = Field(default=None, description="Tailored professional title / headline matching the strategy.")
+    summary: str | None = Field(default=None, description="Tailored professional summary paragraph matching the strategy.")
+
+
 class TailorResult(BaseModel):
     resume: dict[str, Any]
     pdf_path: str

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
@@ -15,6 +16,7 @@ from resume_ops_api.graph.models import (
     SkillsTailoringOutput,
     StrategyOutput,
     WorkTailoringOutput,
+    BasicsTailoringOutput,
 )
 from resume_ops_api.graph.state import ResumeGraphState
 from resume_ops_api.services.llm import StructuredLLMClient
@@ -37,6 +39,7 @@ class ResumeGraph:
         projects_model: str,
         certificates_model: str,
         optional_sections_model: str,
+        basics_model: str,
     ) -> None:
         self.llm_client = llm_client
         self.merger = merger
@@ -49,8 +52,10 @@ class ResumeGraph:
         self.projects_model = projects_model
         self.certificates_model = certificates_model
         self.optional_sections_model = optional_sections_model
+        self.basics_model = basics_model
         graph = StateGraph(ResumeGraphState)
         graph.add_node("strategy", self.strategy_node)
+        graph.add_node("basics_tailoring", self.basics_node)
         graph.add_node("work_tailoring", self.work_node)
         graph.add_node("education_tailoring", self.education_node)
         graph.add_node("skills_tailoring", self.skills_node)
@@ -61,6 +66,7 @@ class ResumeGraph:
         graph.add_node("render", self.render_node)
         graph.add_edge(START, "strategy")
         # Fan-out: strategy feeds all section nodes in parallel
+        graph.add_edge("strategy", "basics_tailoring")
         graph.add_edge("strategy", "work_tailoring")
         graph.add_edge("strategy", "education_tailoring")
         graph.add_edge("strategy", "skills_tailoring")
@@ -68,6 +74,7 @@ class ResumeGraph:
         graph.add_edge("strategy", "certificates_selection")
         graph.add_edge("strategy", "optional_sections_tailoring")
         # Fan-in: all section nodes feed into merge
+        graph.add_edge("basics_tailoring", "merge")
         graph.add_edge("work_tailoring", "merge")
         graph.add_edge("education_tailoring", "merge")
         graph.add_edge("skills_tailoring", "merge")
@@ -91,6 +98,25 @@ class ResumeGraph:
             session_id=state.get("job_id"),
         )
         return {"strategy": strategy}
+
+    async def basics_node(self, state: ResumeGraphState) -> dict[str, BasicsTailoringOutput]:
+        system, user = prompts.basics_prompt(
+            state["original_resume"],
+            state["job_description"],
+            state["strategy"].model_dump(),
+        )
+        from typing import cast
+        output = await cast(
+            Any,
+            self.llm_client.generate_structured(
+                model=self.basics_model,
+                system_prompt=system,
+                user_prompt=user,
+                response_model=BasicsTailoringOutput,
+                session_id=state.get("job_id"),
+            ),
+        )
+        return {"tailored_basics": output}
 
     async def work_node(self, state: ResumeGraphState) -> dict[str, WorkTailoringOutput]:
         if not state["original_resume"].get("work"):
@@ -195,6 +221,7 @@ class ResumeGraph:
     async def merge_node(self, state: ResumeGraphState) -> dict[str, dict]:
         final_resume = self.merger.merge(
             original_resume=state["original_resume"],
+            tailored_basics=state.get("tailored_basics"),
             tailored_work=state.get("tailored_work"),
             tailored_education=state.get("tailored_education"),
             tailored_skills=state.get("tailored_skills"),

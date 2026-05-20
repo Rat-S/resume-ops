@@ -31,7 +31,10 @@ async def test_sync_tailor_returns_pdf_and_preserves_basics(client: AsyncClient,
     assert response.status_code == 200
     payload = response.json()
     assert payload["theme"] == "jsonresume-theme-stackoverflow"
-    assert payload["resume"]["basics"] == sample_resume["basics"]
+    expected_basics = copy.deepcopy(sample_resume["basics"])
+    expected_basics["label"] = "Tailored professional label / headline"
+    expected_basics["summary"] = "Tailored professional summary matching the strategy."
+    assert payload["resume"]["basics"] == expected_basics
     assert payload["resume"]["work"][0]["name"] == sample_resume["work"][0]["name"]
     assert payload["resume"]["work"][0]["summary"] == "Tailored summary for Covai Labs"
     assert payload["resume"]["work"][0]["highlights"] == ["Tailored impact for Covai Labs"]

@@ -116,3 +116,20 @@ def optional_sections_prompt(resume: dict[str, Any], job_description: str, strat
         f"Optional sections:\n{_json({'interests': resume.get('interests', [])})}"
     )
     return system, user
+
+
+def basics_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
+    system = (
+        "Tailor only the professional label (headline/title) and the main summary paragraph "
+        "of the basics section. "
+        "Do not invent unsupported responsibilities or achievements. "
+        "Do not modify other basics details like name, email, phone, location, profiles, or url. "
+        "Return structured JSON with keys: label and summary."
+    )
+    user = (
+        f"Job description:\n{job_description}\n\n"
+        f"Strategy:\n{_json(strategy)}\n\n"
+        f"Master resume for context:\n{_json(resume)}\n\n"
+        f"Target basics section:\n{_json(resume.get('basics', {}))}"
+    )
+    return system, user

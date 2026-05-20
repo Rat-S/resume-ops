@@ -28,6 +28,11 @@ class FakeStructuredLLMClient:
                 section_rules=["Preserve protected fields."],
                 red_lines=["Do not invent facts."],
             )
+        if response_model.__name__ == "BasicsTailoringOutput":
+            return response_model(
+                label="Tailored professional label / headline",
+                summary="Tailored professional summary matching the strategy.",
+            )
         if response_model.__name__ == "WorkTailoringOutput":
             return response_model(
                 work=[
@@ -114,6 +119,7 @@ def settings(tmp_path: Path) -> Settings:
         allowed_themes=["jsonresume-theme-stackoverflow", "jsonresume-theme-even"],
         default_theme="jsonresume-theme-stackoverflow",
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'resume_ops.db'}",
+        default_model="openai/gpt-4o-mini",
     )
 
 

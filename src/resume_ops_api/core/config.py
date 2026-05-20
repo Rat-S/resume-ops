@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     projects_model: str | None = None
     certificates_model: str | None = None
     optional_sections_model: str | None = None
+    basics_model: str | None = None
 
     @model_validator(mode="after")
     def resolve_and_validate_models(self) -> Settings:
@@ -41,6 +42,7 @@ class Settings(BaseSettings):
             "projects_model",
             "certificates_model",
             "optional_sections_model",
+            "basics_model",
         ]
         for field in model_fields:
             val = getattr(self, field)

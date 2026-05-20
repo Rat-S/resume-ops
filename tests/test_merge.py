@@ -10,6 +10,7 @@ from resume_ops_api.graph.models import (
     ProjectsTailoringOutput,
     SkillsTailoringOutput,
     WorkTailoringOutput,
+    BasicsTailoringOutput,
 )
 
 
@@ -96,3 +97,29 @@ def test_merger_caps_certificates_to_18(sample_resume: dict) -> None:
 
     assert len(merged["certificates"]) == 18
     assert [item["name"] for item in merged["certificates"]] == selected[:18]
+
+
+def test_merger_updates_basics(sample_resume: dict) -> None:
+    merger = ResumeMerger()
+    original = copy.deepcopy(sample_resume)
+    
+    # Test with tailored_basics provided
+    merged = merger.merge(
+        original_resume=sample_resume,
+        tailored_basics=BasicsTailoringOutput(
+            label="Tailored Headline",
+            summary="Tailored Summary Paragraph.",
+        ),
+    )
+    assert merged["basics"]["label"] == "Tailored Headline"
+    assert merged["basics"]["summary"] == "Tailored Summary Paragraph."
+    # Ensure other basics fields are preserved
+    assert merged["basics"]["name"] == original["basics"]["name"]
+    assert merged["basics"]["email"] == original["basics"]["email"]
+
+    # Test with tailored_basics=None
+    merged_none = merger.merge(
+        original_resume=sample_resume,
+        tailored_basics=None,
+    )
+    assert merged_none["basics"] == original["basics"]

@@ -11,6 +11,7 @@ from resume_ops_api.graph.models import (
     SkillsTailoringOutput,
     StrategyOutput,
     WorkTailoringOutput,
+    BasicsTailoringOutput,
 )
 
 
@@ -21,6 +22,7 @@ class ResumeGraphState(TypedDict, total=False):
     job_id: str
     output_dir: Path
     strategy: StrategyOutput
+    tailored_basics: BasicsTailoringOutput
     tailored_work: WorkTailoringOutput
     tailored_education: EducationTailoringOutput
     tailored_skills: SkillsTailoringOutput
