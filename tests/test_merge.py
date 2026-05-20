@@ -11,6 +11,7 @@ from resume_ops_api.graph.models import (
     SkillsTailoringOutput,
     WorkTailoringOutput,
     BasicsTailoringOutput,
+    WorkEntryTailoring,
 )
 
 
@@ -123,3 +124,33 @@ def test_merger_updates_basics(sample_resume: dict) -> None:
         tailored_basics=None,
     )
     assert merged_none["basics"] == original["basics"]
+
+
+def test_merger_preserves_all_work_highlights() -> None:
+    resume = {
+        "work": [
+            {"name": "Company A", "summary": "Old summary A", "highlights": ["1", "2"]},
+            {"name": "Company B", "summary": "Old summary B", "highlights": ["1", "2"]},
+            {"name": "Company C", "summary": "Old summary C", "highlights": ["1", "2"]},
+            {"name": "Company D", "summary": "Old summary D", "highlights": ["1", "2"]},
+            {"name": "Company E", "summary": "Old summary E", "highlights": ["1", "2"]},
+        ]
+    }
+    tailored = WorkTailoringOutput(
+        work=[
+            WorkEntryTailoring(summary="S A", highlights=["H1", "H2", "H3", "H4"]),
+            WorkEntryTailoring(summary="S B", highlights=["H1", "H2", "H3", "H4"]),
+            WorkEntryTailoring(summary="S C", highlights=["H1", "H2", "H3", "H4"]),
+            WorkEntryTailoring(summary="S D", highlights=["H1", "H2", "H3", "H4"]),
+            WorkEntryTailoring(summary="S E", highlights=["H1", "H2", "H3", "H4"]),
+        ]
+    )
+    merger = ResumeMerger()
+    merged = merger.merge(original_resume=resume, tailored_work=tailored)
+
+    # All work items should keep all 4 highlights (no programmatic truncation)
+    assert len(merged["work"][0]["highlights"]) == 4
+    assert len(merged["work"][1]["highlights"]) == 4
+    assert len(merged["work"][2]["highlights"]) == 4
+    assert len(merged["work"][3]["highlights"]) == 4
+    assert len(merged["work"][4]["highlights"]) == 4

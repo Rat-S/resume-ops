@@ -25,13 +25,29 @@ def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, 
 
 
 def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
+    work_items = resume.get("work", [])
+    N = len(work_items)
+    recent_count = round(N * 0.6) if N >= 3 else N
+    
+    rules = []
+    if N >= 3 and recent_count < N:
+        recent_names = [w.get("name", f"Item {i+1}") for i, w in enumerate(work_items[:recent_count])]
+        older_names = [w.get("name", f"Item {i+1}") for i, w in enumerate(work_items[recent_count:])]
+        rules.append(
+            f"- For your recent roles ({', '.join(recent_names)}): Tailor comprehensive highlights with normal level of detail.\n"
+            f"- For your older roles ({', '.join(older_names)}): You MUST write a concise summary and strictly limit the highlights list to exactly 1 or 2 high-impact bullet points."
+        )
+    else:
+        rules.append("- Tailor the highlights and summary for all roles with a normal level of detail.")
+
     system = (
         "Tailor only the summary and highlights for each work item. "
         "Do not change company names, positions, dates, locations, urls, or order. "
         "Do not invent unsupported responsibilities or achievements. "
         "CRITICAL: The output 'work' list MUST align 1:1 in length and order with the input list. "
         "Return EXACTLY the same number of work entries in the same order. Do not skip or drop any items. "
-        "Return structured JSON with this key: work (a list of objects with summary and highlights)."
+        "Return structured JSON with this key: work (a list of objects with summary and highlights).\n\n"
+        "HIGHLIGHTS COUNT AND DETAIL RULES:\n" + "\n".join(rules)
     )
     user = (
         f"Job description:\n{job_description}\n\n"
