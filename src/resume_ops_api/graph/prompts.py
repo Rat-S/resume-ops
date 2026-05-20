@@ -8,6 +8,17 @@ def _json(data: Any) -> str:
     return json.dumps(data, ensure_ascii=True, indent=2)
 
 
+def _apply_personality(system: str, personality: str | None) -> str:
+    if personality and personality.strip():
+        system += (
+            f"\n\nTONE AND PERSONALITY INSTRUCTION:\n"
+            f"Adapt the writing style, voice, and tone to match this personality: '{personality.strip()}'.\n"
+            f"Ensure the tailored content remains professional, factual, and highly relevant to the target job description, "
+            f"but uses clever, witty, or slightly themed phrasing to reflect this personality."
+        )
+    return system
+
+
 def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, str]:
     system = (
         "You are tailoring a resume without inventing facts. "
@@ -24,7 +35,12 @@ def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, 
     return system, user
 
 
-def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
+def work_prompt(
+    resume: dict[str, Any],
+    job_description: str,
+    strategy: dict[str, Any],
+    personality: str | None = None,
+) -> tuple[str, str]:
     work_items = resume.get("work", [])
     N = len(work_items)
     
@@ -73,6 +89,7 @@ def work_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str
         "Return structured JSON with this key: work (a list of objects with summary and highlights).\n\n"
         "HIGHLIGHTS COUNT AND DETAIL RULES:\n" + "\n".join(rules)
     )
+    system = _apply_personality(system, personality)
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
@@ -112,7 +129,12 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
     return system, user
 
 
-def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
+def projects_prompt(
+    resume: dict[str, Any],
+    job_description: str,
+    strategy: dict[str, Any],
+    personality: str | None = None,
+) -> tuple[str, str]:
     system = (
         "Choose only from existing projects. You may omit, reorder, and tailor descriptions and highlights. "
         "CRITICAL: You MUST keep the 'name' of each project EXACTLY as provided in the master resume. "
@@ -120,6 +142,7 @@ def projects_prompt(resume: dict[str, Any], job_description: str, strategy: dict
         "For each project, retain or tailor its 'keywords' list (technologies used) matching the StackOverflow layout theme. "
         "Return structured JSON with this key: projects (a list of tailored project objects with name, description, highlights, and keywords)."
     )
+    system = _apply_personality(system, personality)
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
@@ -158,7 +181,12 @@ def optional_sections_prompt(resume: dict[str, Any], job_description: str, strat
     return system, user
 
 
-def basics_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
+def basics_prompt(
+    resume: dict[str, Any],
+    job_description: str,
+    strategy: dict[str, Any],
+    personality: str | None = None,
+) -> tuple[str, str]:
     system = (
         "Tailor only the professional label (headline/title) and the main summary paragraph "
         "of the basics section. "
@@ -169,6 +197,7 @@ def basics_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
         "Do not modify other basics details like name, email, phone, location, profiles, or url. "
         "Return structured JSON with keys: label and summary."
     )
+    system = _apply_personality(system, personality)
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"

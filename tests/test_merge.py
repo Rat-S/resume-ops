@@ -13,7 +13,7 @@ from resume_ops_api.graph.models import (
     BasicsTailoringOutput,
     WorkEntryTailoring,
 )
-from resume_ops_api.graph.prompts import work_prompt
+from resume_ops_api.graph.prompts import work_prompt, basics_prompt, projects_prompt
 
 
 def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
@@ -179,4 +179,33 @@ def test_work_prompt_tier_partitioning() -> None:
     assert "For LightMass: Include only as many highlights as makes sense" in system
     assert "For Convergys: Limit highlights strictly to 1 or 2 bullet points if essential" in system
     assert "For Sutherland: Limit highlights strictly to exactly 1 bullet point focusing on the single most relevant accomplishment" in system
+
+
+def test_prompts_personality_injection() -> None:
+    resume = {
+        "basics": {"summary": "A developer"},
+        "work": [{"name": "Covai Labs"}],
+        "projects": [{"name": "P1"}]
+    }
+    
+    # 1. Without personality
+    system_b, _ = basics_prompt(resume, "job desc", {})
+    system_w, _ = work_prompt(resume, "job desc", {})
+    system_p, _ = projects_prompt(resume, "job desc", {})
+    
+    assert "TONE AND PERSONALITY INSTRUCTION:" not in system_b
+    assert "TONE AND PERSONALITY INSTRUCTION:" not in system_w
+    assert "TONE AND PERSONALITY INSTRUCTION:" not in system_p
+    
+    # 2. With personality
+    personality = "british, funny and quirky"
+    system_b, _ = basics_prompt(resume, "job desc", {}, personality=personality)
+    system_w, _ = work_prompt(resume, "job desc", {}, personality=personality)
+    system_p, _ = projects_prompt(resume, "job desc", {}, personality=personality)
+    
+    assert "TONE AND PERSONALITY INSTRUCTION:" in system_b
+    assert "Adapt the writing style, voice, and tone to match this personality: 'british, funny and quirky'" in system_b
+    assert "TONE AND PERSONALITY INSTRUCTION:" in system_w
+    assert "TONE AND PERSONALITY INSTRUCTION:" in system_p
+
 
