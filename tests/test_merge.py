@@ -177,35 +177,36 @@ def test_work_prompt_tier_partitioning() -> None:
     # Covai Labs, Taxilla, ValueLabs, IBM are Tier 4 (full detail)
     assert "For Covai Labs, Taxilla, ValueLabs, IBM: Tailor normally by retaining only the highly relevant highlights" in system
     assert "For LightMass: Include only as many highlights as makes sense" in system
-    assert "For Convergys: Limit highlights strictly to 1 or 2 bullet points if essential" in system
-    assert "For Sutherland: Limit highlights strictly to exactly 1 bullet point focusing on the single most relevant accomplishment" in system
+    assert "For Convergys: Set the summary to an empty string (\"\"). Limit highlights strictly to 1 or 2 bullet points if essential" in system
+    assert "For Sutherland: Set the summary to an empty string (\"\"). Limit highlights strictly to exactly 1 bullet point focusing on the single most relevant accomplishment" in system
 
 
-def test_prompts_personality_injection() -> None:
+
+def test_prompts_style_injection() -> None:
     resume = {
         "basics": {"summary": "A developer"},
         "work": [{"name": "Covai Labs"}],
         "projects": [{"name": "P1"}]
     }
     
-    # 1. Without personality
+    # 1. Without style
     system_b, _ = basics_prompt(resume, "job desc", {})
     system_w, _ = work_prompt(resume, "job desc", {})
     system_p, _ = projects_prompt(resume, "job desc", {})
     
-    assert "TONE AND PERSONALITY INSTRUCTION:" not in system_b
-    assert "TONE AND PERSONALITY INSTRUCTION:" not in system_w
-    assert "TONE AND PERSONALITY INSTRUCTION:" not in system_p
+    assert "WRITING STYLE AND LANGUAGE GUIDELINES:" not in system_b
+    assert "WRITING STYLE AND LANGUAGE GUIDELINES:" not in system_w
+    assert "WRITING STYLE AND LANGUAGE GUIDELINES:" not in system_p
     
-    # 2. With personality
-    personality = "british, funny and quirky"
-    system_b, _ = basics_prompt(resume, "job desc", {}, personality=personality)
-    system_w, _ = work_prompt(resume, "job desc", {}, personality=personality)
-    system_p, _ = projects_prompt(resume, "job desc", {}, personality=personality)
+    # 2. With style
+    style = "british, funny and quirky"
+    system_b, _ = basics_prompt(resume, "job desc", {}, style=style)
+    system_w, _ = work_prompt(resume, "job desc", {}, style=style)
+    system_p, _ = projects_prompt(resume, "job desc", {}, style=style)
     
-    assert "TONE AND PERSONALITY INSTRUCTION:" in system_b
-    assert "Adapt the writing style, voice, and tone to match this personality: 'british, funny and quirky'" in system_b
-    assert "TONE AND PERSONALITY INSTRUCTION:" in system_w
-    assert "TONE AND PERSONALITY INSTRUCTION:" in system_p
+    assert "WRITING STYLE AND LANGUAGE GUIDELINES:" in system_b
+    assert "You MUST adapt the writing style, vocabulary, tone, and formatting of the tailored text to match: 'british, funny and quirky'" in system_b
+    assert "WRITING STYLE AND LANGUAGE GUIDELINES:" in system_w
+    assert "WRITING STYLE AND LANGUAGE GUIDELINES:" in system_p
 
 

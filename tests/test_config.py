@@ -74,13 +74,16 @@ class TestSettingsDefaults:
         assert settings.default_theme == "@deadrat/jsonresume-theme-stackoverflow"
         assert settings.allowed_themes == ["@deadrat/jsonresume-theme-stackoverflow"]
 
-    def test_default_max_concurrent_jobs(self) -> None:
+    def test_default_max_concurrent_jobs(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("MAX_CONCURRENT_JOBS", raising=False)
         settings = _clean_settings()
         assert settings.max_concurrent_jobs == 2
 
-    def test_default_callback_timeout(self) -> None:
+    def test_default_callback_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("CALLBACK_TIMEOUT_SECONDS", raising=False)
         settings = _clean_settings()
         assert settings.callback_timeout_seconds == 5
+
 
     def test_default_api_keys_are_none(self) -> None:
         # Explicit None to guard against host env vars

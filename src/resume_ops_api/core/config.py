@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     optional_sections_model: str | None = None
     basics_model: str | None = None
 
-    tailoring_personality: str | None = None
+    tailoring_style: str | None = None
 
     @model_validator(mode="after")
     def resolve_and_validate_models(self) -> Settings:

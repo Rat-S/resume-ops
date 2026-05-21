@@ -40,7 +40,7 @@ class ResumeGraph:
         certificates_model: str,
         optional_sections_model: str,
         basics_model: str,
-        personality: str | None = None,
+        style: str | None = None,
     ) -> None:
         self.llm_client = llm_client
         self.merger = merger
@@ -54,7 +54,7 @@ class ResumeGraph:
         self.certificates_model = certificates_model
         self.optional_sections_model = optional_sections_model
         self.basics_model = basics_model
-        self.personality = personality
+        self.style = style
         graph = StateGraph(ResumeGraphState)
         graph.add_node("strategy", self.strategy_node)
         graph.add_node("basics_tailoring", self.basics_node)
@@ -106,7 +106,7 @@ class ResumeGraph:
             state["original_resume"],
             state["job_description"],
             state["strategy"].model_dump(),
-            personality=self.personality,
+            style=self.style,
         )
         from typing import cast
         output = await cast(
@@ -128,7 +128,7 @@ class ResumeGraph:
             state["original_resume"],
             state["job_description"],
             state["strategy"].model_dump(),
-            personality=self.personality,
+            style=self.style,
         )
         output = await self.llm_client.generate_structured(
             model=self.work_model,
@@ -178,7 +178,7 @@ class ResumeGraph:
             state["original_resume"],
             state["job_description"],
             state["strategy"].model_dump(),
-            personality=self.personality,
+            style=self.style,
         )
         output = await self.llm_client.generate_structured(
             model=self.projects_model,
