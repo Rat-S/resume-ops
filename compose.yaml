@@ -1,5 +1,5 @@
 services:
-  resume-ops-api:
+  resume-ops:
     build:
       context: .
       dockerfile: Containerfile
@@ -10,7 +10,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/data:Z
+      - ./data/resume-ops:/data:Z
+      - ./master-resume.json:/data/master-resume.json:ro,z
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/healthz"]
       interval: 30s
@@ -18,3 +19,34 @@ services:
       retries: 3
       start_period: 15s
 
+  job-ops:
+    build:
+      context: ./job-ops
+      dockerfile: Dockerfile
+    image: ghcr.io/rat-s/job-ops:latest
+    container_name: job-ops
+    ports:
+      - "3005:3001"
+    volumes:
+      - ./data/job-ops:/app/data:z
+      - ./master-resume.json:/app/master-resume.json:ro,z
+      - codex-home:/app/codex-home
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - PYTHON_PATH=/usr/bin/python3
+      - CODEX_HOME=/app/codex-home
+    env_file:
+      - ./job-ops/.env
+    depends_on:
+      - resume-ops
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  codex-home:

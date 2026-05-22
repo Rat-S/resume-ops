@@ -111,6 +111,41 @@ The API listens on `http://127.0.0.1:8000`.
 
 Persistent data is mounted to `./data` by `compose.yaml`.
 
+## Running with JobOps Integration
+
+`resume-ops` can run alongside your [JobOps fork](https://github.com/Rat-S/job-ops/tree/feat/resume-ops-integration) as the primary launcher service. In this setup, `resume-ops` serves as the main entry point to host both itself and JobOps.
+
+### Setup
+
+1. **Clone the JobOps fork** into a `job-ops` subdirectory inside `resume-ops`:
+   ```bash
+   git clone --branch feat/resume-ops-integration https://github.com/Rat-S/job-ops.git job-ops
+   ```
+
+2. **Configure the environment**:
+   * Copy `resume-ops/.env.example` to `resume-ops/.env` and configure your LLM credentials.
+   * Copy `resume-ops/job-ops/.env.example` to `resume-ops/job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.).
+   
+3. **Connect JobOps to resume-ops**:
+   Ensure the following variables are set in your `job-ops/.env` file:
+   ```env
+   RESUME_GENERATION_BACKEND=resume_ops
+   RESUME_OPS_BASE_URL=http://resume-ops:8000
+   ```
+
+4. **Provide your master resume**:
+   Place your JSON Resume file at `./master-resume.json` in the `resume-ops` root folder. Both services will automatically mount this file.
+
+5. **Launch the services**:
+   ```bash
+   podman compose up -d --build
+   ```
+
+Once running:
+- **JobOps Web UI**: accessible at `http://localhost:3005`
+- **resume-ops API**: accessible at `http://localhost:8000`
+- Both services communicate internally inside the compose network, with JobOps delegating CV tailoring and rendering to `http://resume-ops:8000`.
+
 ## Example Requests
 
 ### List Available Themes
@@ -361,4 +396,4 @@ resume-ops \
 
 ## License
 
-This project is licensed under `AGPL-3.0-only`. See [LICENSE](/home/anu/Workspace/Biz/resume-ops/LICENSE).
+This project is licensed under `AGPL-3.0-only`. See [LICENSE](./LICENSE).
