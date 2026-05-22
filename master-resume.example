@@ -1,0 +1,136 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+  "basics": {
+    "name": "R. Nallakannu",
+    "label": "Veteran Politician & Social Activist",
+    "email": "nallakannu@example.com",
+    "phone": "+91 000 000 0000",
+    "summary": "Veteran Indian politician and social activist, known for his lifelong commitment to the Communist Party of India (CPI) and his advocacy for the rights of the working class, farmers, and marginalized communities. A symbol of integrity and simplicity in public life, with decades of experience in grassroots organizing, legislative advocacy, and social reform movements across Tamil Nadu and India.",
+    "location": {
+      "address": "CPI State Office",
+      "postalCode": "600000",
+      "city": "Chennai",
+      "countryCode": "IN",
+      "region": "Tamil Nadu"
+    },
+    "profiles": [
+      {
+        "network": "Wikipedia",
+        "username": "R. Nallakannu",
+        "url": "https://en.wikipedia.org/wiki/R._Nallakannu"
+      }
+    ]
+  },
+  "work": [
+    {
+      "name": "Communist Party of India (CPI)",
+      "position": "State Secretary (Tamil Nadu)",
+      "location": "Tamil Nadu, India",
+      "startDate": "1992-03",
+      "endDate": "2005-04",
+      "summary": "Led the CPI Tamil Nadu State Committee, overseeing organizational activities and political strategy.",
+      "highlights": [
+        "Organizational Leadership: Directed party activities across the state, strengthening grassroots presence.",
+        "Political Strategy: Formulated and executed political campaigns and alliances."
+      ]
+    },
+    {
+      "name": "Communist Party of India (CPI)",
+      "position": "Senior Leader & Activist",
+      "location": "Tamil Nadu, India",
+      "startDate": "1940-01",
+      "endDate": "2026-02",
+      "summary": "Dedicated over eight decades to political activism, organizational leadership, and advocacy for social justice, land rights, and labor welfare.",
+      "highlights": [
+        "Grassroots Organizing: Led numerous movements for land reforms, agricultural workers' rights, and social equality across Tamil Nadu.",
+        "Legislative Advocacy: Championed policies for the upliftment of the poor and marginalized, consistently raising issues of public concern in political and social forums."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Self-Taught / Political Schooling",
+      "area": "Political Science & Social Activism",
+      "studyType": "Lifelong Learning",
+      "startDate": "1940",
+      "endDate": "2026"
+    },
+    {
+      "institution": "Community Leadership Training",
+      "area": "Grassroots Organizing",
+      "studyType": "Certificate",
+      "startDate": "1945",
+      "endDate": "1946"
+    }
+  ],
+  "skills": [
+    {
+      "name": "Political Leadership",
+      "keywords": [
+        "Grassroots Organizing",
+        "Public Speaking",
+        "Social Advocacy",
+        "Strategic Planning",
+        "Conflict Resolution"
+      ]
+    },
+    {
+      "name": "Social Activism",
+      "keywords": [
+        "Labor Rights",
+        "Land Reform",
+        "Anti-Caste Movements",
+        "Environmental Protection",
+        "Communal Harmony"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Land Rights Movement",
+      "description": "Led sustained campaigns for the distribution of surplus land to landless agricultural laborers in Tamil Nadu.",
+      "startDate": "1950-01"
+    },
+    {
+      "name": "Social Justice Advocacy",
+      "description": "Consistent advocacy for the rights of Dalits and other marginalized communities, fighting against social discrimination and inequality.",
+      "startDate": "1960-01"
+    }
+  ],
+  "certificates": [
+    {
+      "name": "Sahayogi Puraskar Award",
+      "issuer": "Government of Tamil Nadu",
+      "date": "2007-08-14"
+    },
+    {
+      "name": "Ambedkar Award for Contribution to Public Life",
+      "issuer": "Government of Tamil Nadu",
+      "date": "2007-01-10"
+    },
+    {
+      "name": "Gandhian Award for Social Service",
+      "issuer": "All India Mahatma Gandhi Social Welfare Forum",
+      "date": "2008-10-03"
+    },
+    {
+      "name": "Jeeva Award",
+      "issuer": "District Writers Association",
+      "date": "2009-01-21"
+    }
+  ],
+  "awards": [
+    {
+      "title": "Padma Bhushan",
+      "date": "2022",
+      "awarder": "Government of India",
+      "summary": "Awarded for his distinguished service in public affairs."
+    },
+    {
+      "title": "Gandhi Peace Award",
+      "date": "2010",
+      "awarder": "Various Organizations",
+      "summary": "Recognized for his commitment to peace and social justice."
+    }
+  ]
+}
