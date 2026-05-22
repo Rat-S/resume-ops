@@ -54,12 +54,10 @@ class FakeStructuredLLMClient:
                 skills=[
                     {
                         "name": "Product Strategy",
-                        "level": "",
                         "keywords": ["Roadmap Planning", "Go-to-Market (GTM)"],
                     },
                     {
                         "name": "Invented Space Tech",
-                        "level": "",
                         "keywords": ["Warp Drive"],
                     },
                 ]

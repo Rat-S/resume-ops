@@ -127,7 +127,7 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
     system = (
         "Tailor the skills section by regrouping and prioritizing existing evidence from the master resume. "
         "Keep JSON Resume skill objects. Do not invent unsupported skills. "
-        "Return structured JSON with this key: skills (a list of objects with name, level, and keywords)."
+        "Return structured JSON with this key: skills (a list of objects with name and keywords)."
     )
     user = (
         f"Job description:\n{job_description}\n\n"

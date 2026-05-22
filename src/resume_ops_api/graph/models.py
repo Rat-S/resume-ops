@@ -31,7 +31,6 @@ class EducationTailoringOutput(BaseModel):
 
 class SkillEntry(BaseModel):
     name: str
-    level: str | None = None
     keywords: list[str] = Field(default_factory=list)
 
 

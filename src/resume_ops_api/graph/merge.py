@@ -146,7 +146,6 @@ class ResumeMerger:
             filtered.append(
                 {
                     "name": skill.name.strip(),
-                    "level": (skill.level or "").strip(),
                     "keywords": supported_keywords,
                 }
             )

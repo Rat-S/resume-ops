@@ -28,7 +28,7 @@ def test_merger_only_mutates_allowed_fields(sample_resume: dict) -> None:
             education=[{"courses": ["Relevant coursework"]} for _ in sample_resume["education"]]
         ),
         tailored_skills=SkillsTailoringOutput(
-            skills=[{"name": "Product Strategy", "keywords": ["Roadmap Planning"], "level": ""}]
+            skills=[{"name": "Product Strategy", "keywords": ["Roadmap Planning"]}]
         ),
         tailored_projects=ProjectsTailoringOutput(
             projects=[{"name": sample_resume["projects"][0]["name"], "description": "Tailored description", "keywords": ["Svelte", "Tailwind"]}]
@@ -62,8 +62,8 @@ def test_merger_filters_invented_projects_and_skills(sample_resume: dict) -> Non
         tailored_education=None,
         tailored_skills=SkillsTailoringOutput(
             skills=[
-                {"name": "Invented Space Tech", "keywords": ["Warp Drive"], "level": ""},
-                {"name": "Product Strategy", "keywords": ["Roadmap Planning"], "level": ""},
+                {"name": "Invented Space Tech", "keywords": ["Warp Drive"]},
+                {"name": "Product Strategy", "keywords": ["Roadmap Planning"]},
             ]
         ),
         tailored_projects=ProjectsTailoringOutput(
