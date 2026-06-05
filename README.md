@@ -117,15 +117,21 @@ Persistent data is mounted to `./data` by `compose.yaml`.
 
 ### Setup
 
-1. **Clone the JobOps fork** into a `job-ops` subdirectory inside `resume-ops`:
+1. **Clone this repo with submodules** — `job-ops` is included automatically:
    ```bash
-   git clone --branch feat/resume-ops-integration https://github.com/Rat-S/job-ops.git job-ops
+   git clone --recurse-submodules git@gitlab.com:CovaiLabs/resume-ops.git
+   cd resume-ops
    ```
 
+   > If you already cloned without `--recurse-submodules`, run:
+   > ```bash
+   > git submodule update --init --recursive
+   > ```
+
 2. **Configure the environment**:
-   * Copy `resume-ops/.env.example` to `resume-ops/.env` and configure your LLM credentials.
-   * Copy `resume-ops/job-ops/.env.example` to `resume-ops/job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.).
-   
+   * Copy `.env.example` to `.env` and configure your LLM credentials.
+   * Copy `job-ops/.env.example` to `job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.)
+
 3. **Connect JobOps to resume-ops**:
    Ensure the following variables are set in your `job-ops/.env` file:
    ```env
