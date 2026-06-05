@@ -7,6 +7,9 @@ services:
         NPM_THEMES: ${NPM_THEMES:-@deadrat/jsonresume-theme-stackoverflow}
     env_file:
       - .env
+    environment:
+      - DATA_DIR=/data
+      - MASTER_RESUME_PATH=/data/master-resume.json
     ports:
       - "8000:8000"
     volumes:
