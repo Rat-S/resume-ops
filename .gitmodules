@@ -1,0 +1,4 @@
+[submodule "job-ops"]
+	path = job-ops
+	url = git@github.com:Rat-S/job-ops.git
+	branch = feat/resume-ops-integration
