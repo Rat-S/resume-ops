@@ -119,7 +119,7 @@ Persistent data is mounted to `./data` by `compose.yaml`.
 
 1. **Clone this repo with submodules** — `job-ops` is included automatically:
    ```bash
-   git clone --recurse-submodules git@gitlab.com:CovaiLabs/resume-ops.git
+   git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
    cd resume-ops
    ```
 
