@@ -118,22 +118,25 @@ Persistent data is mounted to `./data` by `compose.yaml`.
 ### Setup
 
 1. **Clone this repo with submodules** — `job-ops` is included automatically:
+
    ```bash
    git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
    cd resume-ops
    ```
 
    > If you already cloned without `--recurse-submodules`, run:
+   >
    > ```bash
    > git submodule update --init --recursive
    > ```
 
 2. **Configure the environment**:
-   * Copy `.env.example` to `.env` and configure your LLM credentials.
-   * Copy `job-ops/.env.example` to `job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.)
+   - Copy `.env.example` to `.env` and configure your LLM credentials.
+   - Copy `job-ops/.env.example` to `job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.)
 
 3. **Connect JobOps to resume-ops**:
    Ensure the following variables are set in your `job-ops/.env` file:
+
    ```env
    RESUME_GENERATION_BACKEND=resume_ops
    RESUME_OPS_BASE_URL=http://resume-ops:8000
@@ -148,6 +151,7 @@ Persistent data is mounted to `./data` by `compose.yaml`.
    ```
 
 Once running:
+
 - **JobOps Web UI**: accessible at `http://localhost:3005`
 - **resume-ops API**: accessible at `http://localhost:8000`
 - Both services communicate internally inside the compose network, with JobOps delegating CV tailoring and rendering to `http://resume-ops:8000`.
@@ -165,9 +169,7 @@ Example response:
 ```json
 {
   "default_theme": "jsonresume-theme-stackoverflow",
-  "allowed_themes": [
-    "jsonresume-theme-stackoverflow"
-  ]
+  "allowed_themes": ["jsonresume-theme-stackoverflow"]
 }
 ```
 
@@ -385,6 +387,7 @@ resume-ops \
 ```
 
 **CLI Options:**
+
 - `--resume`: (Required) Path to the master JSON resume.
 - `--jd`: (Required) Path to the text or markdown job description.
 - `--output`: (Required) Path to save the resulting PDF.
@@ -397,8 +400,6 @@ resume-ops \
 - Background execution is single-process and intended for one API worker
 - Theme support is allowlist-based, not dynamic package installation at request time
 - The service relies on `resumed` being installed in the runtime environment
-
-
 
 ## License
 
