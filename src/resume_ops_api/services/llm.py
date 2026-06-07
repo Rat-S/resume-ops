@@ -41,9 +41,15 @@ class StructuredLLMClient:
             logging.warning(f"Structured LLM client encountered error: {exc}. Retrying...")
             return True
 
+        import sys
+        is_testing = "pytest" in sys.modules
+        max_attempts = 10
+        min_wait = 0 if is_testing else 3
+        max_wait = 0 if is_testing else 30
+
         async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=1, max=4),
+            stop=stop_after_attempt(max_attempts),
+            wait=wait_exponential(multiplier=3, min=min_wait, max=max_wait),
             retry=retry_if_exception(should_retry),
             reraise=True,
         ):
@@ -125,30 +131,62 @@ class StructuredLLMClient:
             )
             content = completion["choices"][0]["message"]["content"]
             
-            # Clean up potential markdown formatting code blocks (e.g. ```json ... ```)
+            # Clean up potential markdown formatting code blocks or leading/trailing conversational text
             content_str = content.strip()
-            if content_str.startswith("```"):
-                lines = content_str.splitlines()
-                if lines[0].startswith("```"):
-                    lines = lines[1:]
-                if lines and lines[-1].startswith("```"):
-                    lines = lines[:-1]
-                content_str = "\n".join(lines).strip()
+            import re
+            match = re.search(r"```(?:json)?\s*(.*?)\s*```", content_str, re.DOTALL)
+            if match:
+                content_str = match.group(1).strip()
+            else:
+                first_idx = min(
+                    [idx for idx in [content_str.find("{"), content_str.find("[")] if idx != -1],
+                    default=-1
+                )
+                last_idx = max(
+                    [idx for idx in [content_str.rfind("}"), content_str.rfind("]")] if idx != -1],
+                    default=-1
+                )
+                if first_idx != -1 and last_idx != -1 and last_idx > first_idx:
+                    content_str = content_str[first_idx : last_idx + 1].strip()
+
+            # If the content doesn't start with '{' or '[', but looks like a key-value or field definition, wrap it in braces
+            if not content_str.startswith("{") and not content_str.startswith("["):
+                if ":" in content_str:
+                    content_str = "{" + content_str + "}"
 
             parsed = json.loads(content_str)
-            # If the response is wrapped in a list, extract the dictionary
-            if isinstance(parsed, list) and len(parsed) == 1:
-                parsed = parsed[0]
-            elif isinstance(parsed, list) and len(parsed) > 1:
-                for item in parsed:
-                    if isinstance(item, dict):
-                        parsed = item
-                        break
+            # Normalize list and dict wrappers to match target model schema
+            if isinstance(parsed, list):
+                model_fields = list(response_model.model_fields.keys())
+                if len(parsed) == 1 and not any(isinstance(item, list) for item in parsed):
+                    first_item = parsed[0]
+                    if isinstance(first_item, dict) and any(k in model_fields for k in first_item.keys()):
+                        parsed = first_item
+                
+                if isinstance(parsed, list):
+                    list_field = None
+                    for field_name, field_info in response_model.model_fields.items():
+                        from typing import get_origin
+                        if get_origin(field_info.annotation) is list:
+                            list_field = field_name
+                            break
+                    if list_field:
+                        parsed = {list_field: parsed}
+            elif isinstance(parsed, dict):
+                model_fields = set(response_model.model_fields.keys())
+                if not (set(parsed.keys()) & model_fields):
+                    list_values = [v for v in parsed.values() if isinstance(v, list)]
+                    if len(list_values) == 1:
+                        for field_name, field_info in response_model.model_fields.items():
+                            from typing import get_origin
+                            if get_origin(field_info.annotation) is list:
+                                parsed = {field_name: list_values[0]}
+                                break
 
             return response_model.model_validate(parsed)
         except Exception as exc:
             import logging
-            logging.error(f"Structured LLM generation failed for model '{model}': {exc}")
+            logging.error(f"Structured LLM generation failed for model '{model}': {exc}. Raw content was: {repr(locals().get('content'))}, content_str was: {repr(locals().get('content_str'))}")
             raise AppError(
                 f"Structured LLM generation failed for model '{model}'.",
                 code="llm_generation_failed",
