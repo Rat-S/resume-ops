@@ -103,16 +103,15 @@ This project supports two execution modes: deploying via pre-built images from G
 
 ### Host Directory Permissions (Crucial for Podman / Rootless Docker)
 
-> [!IMPORTANT]
-> **Directory Write Permissions**: Because both `resume-ops` and `job-ops` run inside containers as secure non-root users (`appuser` and `node` respectively), they do not have root privileges to write to directories owned solely by your host user. 
-> 
-> If the local data directories do not have open write permissions, the services will fail during startup with a `PermissionError: [Errno 13] Permission denied` (e.g., when attempting to create SQLite databases or directory structures).
+To run in rootless environments securely, the `compose.yaml` configuration utilizes the Podman `:U` volume mount suffix (configured as `:Z,U` and `:z,U`).
+
+This flag instructs the container runtime to automatically change the owner (`chown`) of the host's mounted directories (e.g., `./data/resume-ops` and `./data/job-ops`) to match the UID/GID of the non-root users running inside the containers (`appuser` and `node` respectively). This prevents any `PermissionError: [Errno 13] Permission denied` errors when creating SQLite databases or saving jobs, without requiring you to manually weaken directory permissions (like `chmod 777`) on the host.
+
+> [!NOTE]
+> **Docker Compatibility**: This setup has been tested using **Podman**. If you are running under rootless Docker, you may need to make minor adjustments depending on your version:
 >
-> To resolve this, grant write permissions to your local data folder on the host:
-> ```bash
-> mkdir -p data/
-> chmod -R 777 data/
-> ```
+> - If your Docker daemon does not support the `:U` flag in compose, you can remove `,U` from the volume mount lines in `compose.yaml`.
+> - If you experience permission errors when starting under rootless Docker, you can fall back to manually adjusting host directory permissions (e.g., `chmod -R 777 data/` or using `chown` to match the container's mapped subuid).
 
 ---
 
@@ -121,7 +120,9 @@ This project supports two execution modes: deploying via pre-built images from G
 You need to configure two separate `.env` files—one for each container.
 
 #### 1. Core API Config (`./.env`)
+
 Create `./.env` in the root `resume-ops` folder:
+
 ```env
 # API Keys (Set at least one depending on your model choice)
 OPENAI_API_KEY=sk-...
@@ -142,7 +143,9 @@ DATA_DIR=/data
 ```
 
 #### 2. Submodule Config (`./job-ops/.env`)
+
 Create `./job-ops/.env` in the `job-ops` directory. It **must** point to the `resume-ops` container as its backend:
+
 ```env
 # Integration Backend (Crucial)
 RESUME_GENERATION_BACKEND=resume_ops
@@ -171,6 +174,7 @@ To run the complete pipeline (`resume-ops` and `job-ops`) directly using pre-bui
    This will pull `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` and launch them immediately without local compile overhead.
 
 Once running:
+
 - **JobOps Web UI**: accessible at `http://localhost:3005`
 - **resume-ops API**: accessible at `http://localhost:8000`
 
@@ -188,7 +192,7 @@ If you are developing or want to build/recompile the images locally:
    ```bash
    podman compose up -d --build
    ```
-   *Note: Because `compose.override.yaml` is present, `podman compose` will automatically merge the local build settings and compile the images locally instead of pulling from GHCR.*
+   _Note: Because `compose.override.yaml` is present, `podman compose` will automatically merge the local build settings and compile the images locally instead of pulling from GHCR._
 
 ---
 
@@ -204,7 +208,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-*Note: For the `job-ops` submodule, make sure you push the tag to your own fork repo (`Rat-S/job-ops`).*
+_Note: For the `job-ops` submodule, make sure you push the tag to your own fork repo (`Rat-S/job-ops`)._
 
 ## Example Requests
 
