@@ -127,6 +127,9 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
     system = (
         "Tailor the skills section by regrouping and prioritizing existing evidence from the master resume. "
         "Keep JSON Resume skill objects. Do not invent unsupported skills. "
+        "Structure the output into a maximum of 6 (ideally 4 to 6) distinct, high-impact categories/names. "
+        "Under each category, include between 3 and 8 keywords (or fewer if not enough evidence exists in the master resume) "
+        "representing the most relevant technologies, tools, or methodologies. "
         "Return structured JSON with this key: skills (a list of objects with name and keywords)."
     )
     user = (
@@ -145,6 +148,8 @@ def projects_prompt(
 ) -> tuple[str, str]:
     system = (
         "Choose only from existing projects. You may omit, reorder, and tailor descriptions and highlights. "
+        "Select a maximum of 4 (ideally 2 to 4) projects that are most relevant to the target job description. "
+        "For each project, write at most 3 relevant highlights and list at most 6 technologies/keywords used. "
         "CRITICAL: You MUST keep the 'name' of each project EXACTLY as provided in the master resume. "
         "Do not alter project names even slightly (e.g. spelling, casing, symbols), or they will be dropped during merge. "
         "For each project, retain or tailor its 'keywords' list (technologies used) matching the StackOverflow layout theme. "
@@ -198,6 +203,7 @@ def basics_prompt(
     system = (
         "Tailor only the professional label (headline/title) and the main summary paragraph "
         "of the basics section. "
+        "Write a single, concise professional summary paragraph aiming for under 100 words (3-4 sentences). "
         "CRITICAL: The tailored summary MUST explicitly retain or include the mention of "
         "your education if it can be high signalling. For example, if you have an MBA from IIM Trichy, "
         "you can mention it. "

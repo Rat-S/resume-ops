@@ -210,3 +210,111 @@ def test_prompts_style_injection() -> None:
     assert "WRITING STYLE AND LANGUAGE GUIDELINES:" in system_p
 
 
+def test_skills_validation_constraints() -> None:
+    from pydantic import ValidationError
+    import pytest
+
+    # 1. Valid output
+    valid_data = {
+        "skills": [
+            {"name": f"Category {i}", "keywords": [f"keyword-{j}" for j in range(5)]}
+            for i in range(4)
+        ]
+    }
+    output = SkillsTailoringOutput(**valid_data)
+    assert len(output.skills) == 4
+    assert len(output.skills[0].keywords) == 5
+
+    # 2. Too many categories (> 6)
+    invalid_categories = {
+        "skills": [
+            {"name": f"Category {i}", "keywords": ["kw"]}
+            for i in range(7)
+        ]
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        SkillsTailoringOutput(**invalid_categories)
+    assert "List should have at most 6 items" in str(exc_info.value)
+
+    # 3. Too many keywords (> 8)
+    invalid_keywords = {
+        "skills": [
+            {"name": "Category 1", "keywords": [f"kw-{i}" for i in range(9)]}
+        ]
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        SkillsTailoringOutput(**invalid_keywords)
+    assert "List should have at most 8 items" in str(exc_info.value)
+
+    # 4. Empty keywords list (min_length=1)
+    empty_keywords = {
+        "skills": [
+            {"name": "Category 1", "keywords": []}
+        ]
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        SkillsTailoringOutput(**empty_keywords)
+    assert "List should have at least 1 item" in str(exc_info.value)
+
+
+def test_projects_validation_constraints() -> None:
+    from pydantic import ValidationError
+    import pytest
+
+    # 1. Valid projects output
+    valid_data = {
+        "projects": [
+            {
+                "name": f"Project {i}",
+                "description": "Tailored desc",
+                "highlights": ["h1", "h2"],
+                "keywords": ["kw1", "kw2"]
+            }
+            for i in range(3)
+        ]
+    }
+    output = ProjectsTailoringOutput(**valid_data)
+    assert len(output.projects) == 3
+
+    # 2. Too many projects (> 4)
+    invalid_projects = {
+        "projects": [
+            {"name": f"Project {i}", "keywords": []}
+            for i in range(5)
+        ]
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ProjectsTailoringOutput(**invalid_projects)
+    assert "List should have at most 4 items" in str(exc_info.value)
+
+    # 3. Too many highlights (> 3)
+    invalid_highlights = {
+        "projects": [
+            {
+                "name": "Project A",
+                "highlights": ["h1", "h2", "h3", "h4"],
+                "keywords": []
+            }
+        ]
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ProjectsTailoringOutput(**invalid_highlights)
+    assert "List should have at most 3 items" in str(exc_info.value)
+
+    # 4. Too many keywords (> 6)
+    invalid_keywords = {
+        "projects": [
+            {
+                "name": "Project A",
+                "highlights": [],
+                "keywords": ["kw1", "kw2", "kw3", "kw4", "kw5", "kw6", "kw7"]
+            }
+        ]
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ProjectsTailoringOutput(**invalid_keywords)
+    assert "List should have at most 6 items" in str(exc_info.value)
+
+
+
+
