@@ -101,26 +101,74 @@ DATA_DIR=/data
 
 This project supports two execution modes: deploying via pre-built images from GitHub Container Registry (GHCR) (recommended for running the pipeline without local build overhead) and building locally for development.
 
+### Host Directory Permissions (Crucial for Podman / Rootless Docker)
+
+> [!IMPORTANT]
+> **Directory Write Permissions**: Because both `resume-ops` and `job-ops` run inside containers as secure non-root users (`appuser` and `node` respectively), they do not have root privileges to write to directories owned solely by your host user. 
+> 
+> If the local data directories do not have open write permissions, the services will fail during startup with a `PermissionError: [Errno 13] Permission denied` (e.g., when attempting to create SQLite databases or directory structures).
+>
+> To resolve this, grant write permissions to your local data folder on the host:
+> ```bash
+> mkdir -p data/
+> chmod -R 777 data/
+> ```
+
+---
+
+### Environment Setup Checklist
+
+You need to configure two separate `.env` files—one for each container.
+
+#### 1. Core API Config (`./.env`)
+Create `./.env` in the root `resume-ops` folder:
+```env
+# API Keys (Set at least one depending on your model choice)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
+
+# Model Routing Configuration
+STRATEGY_MODEL=openai/gpt-4o-mini
+WORK_MODEL=openai/gpt-4o-mini
+EDUCATION_MODEL=openai/gpt-4o-mini
+SKILLS_MODEL=openai/gpt-4o-mini
+PROJECTS_MODEL=openai/gpt-4o-mini
+OPTIONAL_SECTIONS_MODEL=openai/gpt-4o-mini
+
+# Paths (Keep as-is for container execution)
+MASTER_RESUME_PATH=/data/master-resume.json
+DATA_DIR=/data
+```
+
+#### 2. Submodule Config (`./job-ops/.env`)
+Create `./job-ops/.env` in the `job-ops` directory. It **must** point to the `resume-ops` container as its backend:
+```env
+# Integration Backend (Crucial)
+RESUME_GENERATION_BACKEND=resume_ops
+RESUME_OPS_BASE_URL=http://resume-ops:8000
+
+# Data Storage
+DATA_DIR=/app/data
+
+# Scraper Credentials (Gmail, Apify, etc.)
+# ...
+```
+
+---
+
 ### Option 1: Running with Pre-built Images (Recommended)
 
 To run the complete pipeline (`resume-ops` and `job-ops`) directly using pre-built containers from GHCR:
 
-1. **Configure the environment**:
-   - Copy `.env.example` to `.env` and configure your LLM credentials.
-   - Copy `job-ops/.env.example` to `job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.)
-2. **Connect JobOps to resume-ops**:
-   Ensure the following variables are set in your `job-ops/.env` file:
-   ```env
-   RESUME_GENERATION_BACKEND=resume_ops
-   RESUME_OPS_BASE_URL=http://resume-ops:8000
-   ```
-3. **Provide your master resume**:
-   Place your JSON Resume file at `./master-resume.json` in the `resume-ops` root folder. Both services will automatically mount this file.
+1. **Follow the Environment Checklist** above to configure both `.env` files.
+2. **Provide your master resume**: Place your JSON Resume file at `./master-resume.json` in the `resume-ops` root folder. Both services will automatically mount this file.
+3. **Configure permissions** as shown in the Host Directory Permissions warning block.
 4. **Launch the services**:
    ```bash
    podman compose up -d
    ```
-   This will pull `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` and launch them immediately without compiling.
+   This will pull `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` and launch them immediately without local compile overhead.
 
 Once running:
 - **JobOps Web UI**: accessible at `http://localhost:3005`
@@ -135,7 +183,7 @@ If you are developing or want to build/recompile the images locally:
    git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
    cd resume-ops
    ```
-2. **Follow the configuration steps** (environment and master resume setup) as shown in Option 1.
+2. **Follow the configuration steps** (environment, permissions, and master resume setup) as shown in Option 1.
 3. **Start the services**:
    ```bash
    podman compose up -d --build
