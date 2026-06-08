@@ -1,10 +1,6 @@
 services:
   resume-ops:
-    build:
-      context: .
-      dockerfile: Containerfile
-      args:
-        NPM_THEMES: ${NPM_THEMES:-@deadrat/jsonresume-theme-stackoverflow}
+    image: ghcr.io/rat-s/resume-ops:latest
     env_file:
       - .env
     environment:
@@ -23,9 +19,6 @@ services:
       start_period: 15s
 
   job-ops:
-    build:
-      context: ./job-ops
-      dockerfile: Dockerfile
     image: ghcr.io/rat-s/job-ops:latest
     container_name: job-ops
     ports:

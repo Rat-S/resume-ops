@@ -1,0 +1,12 @@
+services:
+  resume-ops:
+    build:
+      context: .
+      dockerfile: Containerfile
+      args:
+        NPM_THEMES: ${NPM_THEMES:-@deadrat/jsonresume-theme-stackoverflow}
+
+  job-ops:
+    build:
+      context: ./job-ops
+      dockerfile: Dockerfile

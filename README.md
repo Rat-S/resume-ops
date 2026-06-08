@@ -97,64 +97,66 @@ MASTER_RESUME_PATH=/data/master-resume.json
 DATA_DIR=/data
 ```
 
-## Run With Podman
+## Deployment & Local Development
 
-1. Copy `.env.example` to `.env`.
-2. Fill in at least one provider credential and your chosen model names.
-3. Start the service:
+This project supports two execution modes: deploying via pre-built images from GitHub Container Registry (GHCR) (recommended for running the pipeline without local build overhead) and building locally for development.
 
-```bash
-podman compose up --build
-```
+### Option 1: Running with Pre-built Images (Recommended)
 
-The API listens on `http://127.0.0.1:8000`.
+To run the complete pipeline (`resume-ops` and `job-ops`) directly using pre-built containers from GHCR:
 
-Persistent data is mounted to `./data` by `compose.yaml`.
-
-## Running with JobOps Integration
-
-`resume-ops` can run alongside your [JobOps fork](https://github.com/Rat-S/job-ops/tree/feat/resume-ops-integration) as the primary launcher service. In this setup, `resume-ops` serves as the main entry point to host both itself and JobOps.
-
-### Setup
-
-1. **Clone this repo with submodules** — `job-ops` is included automatically:
-
-   ```bash
-   git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
-   cd resume-ops
-   ```
-
-   > If you already cloned without `--recurse-submodules`, run:
-   >
-   > ```bash
-   > git submodule update --init --recursive
-   > ```
-
-2. **Configure the environment**:
+1. **Configure the environment**:
    - Copy `.env.example` to `.env` and configure your LLM credentials.
    - Copy `job-ops/.env.example` to `job-ops/.env` and configure your scraper credentials (Gmail, Apify, etc.)
-
-3. **Connect JobOps to resume-ops**:
+2. **Connect JobOps to resume-ops**:
    Ensure the following variables are set in your `job-ops/.env` file:
-
    ```env
    RESUME_GENERATION_BACKEND=resume_ops
    RESUME_OPS_BASE_URL=http://resume-ops:8000
    ```
-
-4. **Provide your master resume**:
+3. **Provide your master resume**:
    Place your JSON Resume file at `./master-resume.json` in the `resume-ops` root folder. Both services will automatically mount this file.
+4. **Launch the services**:
+   ```bash
+   podman compose up -d
+   ```
+   This will pull `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` and launch them immediately without compiling.
 
-5. **Launch the services**:
+Once running:
+- **JobOps Web UI**: accessible at `http://localhost:3005`
+- **resume-ops API**: accessible at `http://localhost:8000`
+
+### Option 2: Running with Local Development Build
+
+If you are developing or want to build/recompile the images locally:
+
+1. **Clone the repo with submodules**:
+   ```bash
+   git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
+   cd resume-ops
+   ```
+2. **Follow the configuration steps** (environment and master resume setup) as shown in Option 1.
+3. **Start the services**:
    ```bash
    podman compose up -d --build
    ```
+   *Note: Because `compose.override.yaml` is present, `podman compose` will automatically merge the local build settings and compile the images locally instead of pulling from GHCR.*
 
-Once running:
+---
 
-- **JobOps Web UI**: accessible at `http://localhost:3005`
-- **resume-ops API**: accessible at `http://localhost:8000`
-- Both services communicate internally inside the compose network, with JobOps delegating CV tailoring and rendering to `http://resume-ops:8000`.
+## Building and Publishing to GHCR
+
+Container images are automatically built and published to GHCR (`ghcr.io/rat-s/resume-ops` and `ghcr.io/rat-s/job-ops`) via GitHub Actions when a version tag (`v*`) is pushed to the repository:
+
+```bash
+# 1. Create a version tag
+git tag v0.1.0
+
+# 2. Push the tag to GitHub (triggers the CI build and publish)
+git push origin v0.1.0
+```
+
+*Note: For the `job-ops` submodule, make sure you push the tag to your own fork repo (`Rat-S/job-ops`).*
 
 ## Example Requests
 
