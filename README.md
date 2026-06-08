@@ -61,170 +61,62 @@ The service then:
 - `GET /healthz`
 - `GET /readyz`
 
-## Configuration
+### Configuration & Environment Setup
 
-Copy `.env.example` to `.env` and set the values you need.
+Copy the example environment files to configure model routing, API keys, and theme settings:
 
-Important variables:
+1.  **Core API Config (`./.env`)**: Copy from `[./.env.example](./.env.example)`. Note: If you are using vLLM or standard OpenAI endpoints, customize the `DEFAULT_MODEL` (e.g. `ibm-granite/granite-4.1-8b`, prefixing with `openai/` if using an OpenAI key or OpenRouter proxy).
+2.  **Scraper Client Config (`./job-ops/.env`)**: Copy from `[./job-ops/.env.example](./job-ops/.env.example)` and configure the scraper credentials. Ensure `RESUME_GENERATION_BACKEND=resume_ops` and `RESUME_OPS_BASE_URL=http://resume-ops:8000` are configured.
 
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`: provider credentials
-- `OPENAI_BASE_URL`: optional custom endpoint such as OpenRouter
-- `STRATEGY_MODEL`, `WORK_MODEL`, `EDUCATION_MODEL`, `SKILLS_MODEL`, `PROJECTS_MODEL`, `OPTIONAL_SECTIONS_MODEL`: model routing
-- `DEFAULT_THEME`: default PDF theme
-- `ALLOWED_THEMES`: comma-separated allowlist of supported themes
-- `MAX_CONCURRENT_JOBS`: background worker concurrency
-- `CALLBACK_TIMEOUT_SECONDS`: outbound callback timeout
-- `MASTER_RESUME_PATH`: optional path to a default JSON Resume on disk. If provided, the API caller can omit the `resume` field from the request payload.
-- `DATA_DIR`: persistent app data path, including SQLite DB and rendered PDFs
-- `DATABASE_URL`: optional explicit DB URL; if unset, SQLite is created under `DATA_DIR`
+---
 
-Example:
+## Deployment & Running
 
-```env
-OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=
-STRATEGY_MODEL=openai/gpt-4o-mini
-WORK_MODEL=openai/gpt-4o-mini
-EDUCATION_MODEL=openai/gpt-4o-mini
-SKILLS_MODEL=openai/gpt-4o-mini
-PROJECTS_MODEL=openai/gpt-4o-mini
-OPTIONAL_SECTIONS_MODEL=openai/gpt-4o-mini
-DEFAULT_THEME=jsonresume-theme-stackoverflow
-ALLOWED_THEMES=jsonresume-theme-stackoverflow,jsonresume-theme-even
-MAX_CONCURRENT_JOBS=2
-CALLBACK_TIMEOUT_SECONDS=5
-MASTER_RESUME_PATH=/data/master-resume.json
-DATA_DIR=/data
-```
+### Host Volume Permissions (Podman / Rootless Container)
 
-## Deployment & Local Development
+To run in rootless environments securely, the volume mounts in `compose.yaml` utilize the Podman `:U` volume mount suffix (configured as `:Z,U` and `:z,U`).
 
-This project supports two execution modes: deploying via pre-built images from GitHub Container Registry (GHCR) (recommended for running the pipeline without local build overhead) and building locally for development.
-
-### Host Directory Permissions (Crucial for Podman / Rootless Docker)
-
-To run in rootless environments securely, the `compose.yaml` configuration utilizes the Podman `:U` volume mount suffix (configured as `:Z,U` and `:z,U`).
-
-This flag instructs the container runtime to automatically change the owner (`chown`) of the host's mounted directories (e.g., `./data/resume-ops` and `./data/job-ops`) to match the UID/GID of the non-root users running inside the containers (`appuser` and `node` respectively). This prevents any `PermissionError: [Errno 13] Permission denied` errors when creating SQLite databases or saving jobs, without requiring you to manually weaken directory permissions (like `chmod 777`) on the host.
+This flag instructs the container runtime to automatically update host directory ownership to match the UID/GID of the non-root container users (`appuser` and `node` respectively), preventing any `PermissionError: [Errno 13] Permission denied` errors when creating SQLite databases without requiring manual `chmod 777` access on the host.
 
 > [!NOTE]
-> **Docker Compatibility**: This setup has been tested using **Podman**. If you are running under rootless Docker, you may need to make minor adjustments depending on your version:
->
-> - If your Docker daemon does not support the `:U` flag in compose, you can remove `,U` from the volume mount lines in `compose.yaml`.
-> - If you experience permission errors when starting under rootless Docker, you can fall back to manually adjusting host directory permissions (e.g., `chmod -R 777 data/` or using `chown` to match the container's mapped subuid).
+> **Docker Compatibility**: This setup has been tested using **Podman**. If you are running under rootless Docker, you may need to adjust your volume mount syntax (e.g., removing the `,U` suffix if not supported) or manually apply permissions (such as `chmod -R 777 data/` or setting ownership manually).
 
----
+### Option 1: Running with Pre-built Registry Images (Recommended)
 
-### Environment Setup Checklist
-
-You need to configure two separate `.env` files—one for each container.
-
-#### 1. Core API Config (`./.env`)
-
-Create `./.env` in the root `resume-ops` folder:
-
-```env
-# API Keys (Set at least one depending on your model choice)
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=
-GEMINI_API_KEY=
-
-# Model Routing Configuration
-STRATEGY_MODEL=openai/gpt-4o-mini
-WORK_MODEL=openai/gpt-4o-mini
-EDUCATION_MODEL=openai/gpt-4o-mini
-SKILLS_MODEL=openai/gpt-4o-mini
-PROJECTS_MODEL=openai/gpt-4o-mini
-OPTIONAL_SECTIONS_MODEL=openai/gpt-4o-mini
-
-# Paths (Keep as-is for container execution)
-MASTER_RESUME_PATH=/data/master-resume.json
-DATA_DIR=/data
-```
-
-#### 2. Submodule Config (`./job-ops/.env`)
-
-Create `./job-ops/.env` in the `job-ops` directory. It **must** point to the `resume-ops` container as its backend:
-
-```env
-# Integration Backend (Crucial)
-RESUME_GENERATION_BACKEND=resume_ops
-RESUME_OPS_BASE_URL=http://resume-ops:8000
-
-# Data Storage
-DATA_DIR=/app/data
-
-# Scraper Credentials (Gmail, Apify, etc.)
-# ...
-```
-
----
-
-### Option 1: Running with Pre-built Images (Recommended)
-
-To run the complete pipeline (`resume-ops` and `job-ops`) directly using pre-built containers from GHCR:
-
-1. **Follow the Environment Checklist** above to configure both `.env` files.
-2. **Provide your master resume**: Place your JSON Resume file at `./master-resume.json` in the `resume-ops` root folder. Both services will automatically mount this file.
-3. **Configure permissions** as shown in the Host Directory Permissions warning block.
-4. **Launch the services**:
-   ```bash
-   podman compose up -d
-   ```
-   This will pull `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` and launch them immediately without local compile overhead.
+1.  Follow the **Configuration & Environment Setup** steps above.
+2.  **Provide your master resume**: Copy the template from `[master-resume.json.example](./master-resume.json.example)` to `./master-resume.json` in the root `resume-ops` folder.
+3.  **Launch the services**:
+    ```bash
+    podman compose up -d
+    ```
+    This will pull `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` from the registry and launch them immediately.
 
 Once running:
 
-- **JobOps Web UI**: accessible at `http://localhost:3005`
-- **resume-ops API**: accessible at `http://localhost:8000`
+- **JobOps Web UI**: `http://localhost:3005`
+- **resume-ops API**: `http://localhost:8000`
 
 ### Option 2: Running with Local Development Build
 
 If you are developing or want to build/recompile the images locally:
 
-1. **Clone the repo with submodules**:
-   ```bash
-   git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
-   cd resume-ops
-   ```
-2. **Follow the configuration steps** (environment, permissions, and master resume setup) as shown in Option 1.
-3. **Start the services**:
-   ```bash
-   podman compose up -d --build
-   ```
-   _Note: Because `compose.override.yaml` is present, `podman compose` will automatically merge the local build settings and compile the images locally instead of pulling from GHCR._
+```bash
+git clone --recurse-submodules https://github.com/Rat-S/resume-ops.git
+cd resume-ops
+# Follow the configuration steps (environment and master resume setup) as in Option 1.
+podman compose up -d --build
+```
+
+_(Note: Because `compose.override.yaml` is present, it automatically compiles the images locally instead of pulling from GHCR.)_
 
 ---
 
-## Building and Publishing to GHCR
-
-Container images are automatically built and published to GHCR (`ghcr.io/rat-s/resume-ops` and `ghcr.io/rat-s/job-ops`) via GitHub Actions when a version tag (`v*`) is pushed to the repository:
-
-```bash
-# 1. Create a version tag
-git tag v0.1.0
-
-# 2. Push the tag to GitHub (triggers the CI build and publish)
-git push origin v0.1.0
-```
-
-_Note: For the `job-ops` submodule, make sure you push the tag to your own fork repo (`Rat-S/job-ops`)._
-
-## Example Requests
+## Example Request & Callback Usage
 
 ### List Available Themes
 
 ```bash
 curl http://127.0.0.1:8000/api/v1/themes
-```
-
-Example response:
-
-```json
-{
-  "default_theme": "jsonresume-theme-stackoverflow",
-  "allowed_themes": ["jsonresume-theme-stackoverflow"]
-}
 ```
 
 ### Synchronous Tailoring
@@ -237,12 +129,12 @@ curl -X POST http://127.0.0.1:8000/api/v1/tailor \
   -d @- <<'JSON'
 {
   "job_description": "Looking for a product leader with AI and platform experience.",
-  "theme": "jsonresume-theme-stackoverflow"
+  "theme": "@deadrat/jsonresume-theme-stackoverflow"
 }
 JSON
 ```
 
-If you don't have a `MASTER_RESUME_PATH` configured, or if you want to override it, you can provide the full JSON Resume in the payload:
+If you don't have a default `MASTER_RESUME_PATH` configured, or if you want to override it, you can provide the full JSON resume directly in the payload under `"resume"`:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/tailor \
@@ -252,27 +144,15 @@ curl -X POST http://127.0.0.1:8000/api/v1/tailor \
   "resume": {
     "basics": {
       "name": "Jane Doe",
-      "email": "jane@example.com",
-      "summary": "Product leader with experience in AI systems."
-    },
-    "work": []
+      "email": "jane@example.com"
+    }
   },
   "job_description": "Looking for a product leader with AI and platform experience."
 }
 JSON
 ```
 
-Successful response shape:
-
-```json
-{
-  "resume": {
-    "...": "tailored json resume"
-  },
-  "pdf_base64": "JVBERi0xLjQK...",
-  "theme": "jsonresume-theme-stackoverflow"
-}
-```
+_(Refer to `[master-resume.json.example](./master-resume.json.example)` for the full schema structure.)_
 
 ### Asynchronous Tailoring With Callback
 
@@ -282,7 +162,6 @@ curl -X POST http://127.0.0.1:8000/api/v1/tailor \
   -d @- <<'JSON'
 {
   "resume": {
-    "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
     "basics": {
       "name": "Jane Doe",
       "email": "jane@example.com"
@@ -294,159 +173,43 @@ curl -X POST http://127.0.0.1:8000/api/v1/tailor \
 JSON
 ```
 
-Accepted response:
+---
 
-```json
-{
-  "task_id": "9f5b4b08f74b4cb2bc4ebae613cb2e77",
-  "status": "queued"
-}
-```
+## Data Storage & Local Development
 
-### Poll Task Status
+### Data Storage
 
-```bash
-curl http://127.0.0.1:8000/api/v1/tasks/9f5b4b08f74b4cb2bc4ebae613cb2e77
-```
+By default, the SQLite database is stored under `/data`, and rendered PDFs are saved under `/data/jobs/<task_id>/output.pdf`. In the compose stack, `/data` is mapped to the local `./data/resume-ops` host directory.
 
-Completed response shape:
+### Local Development (Without Container)
 
-```json
-{
-  "task_id": "9f5b4b08f74b4cb2bc4ebae613cb2e77",
-  "status": "completed",
-  "created_at": "2025-05-13T08:30:00Z",
-  "updated_at": "2025-05-13T08:30:25Z",
-  "resume": {
-    "...": "tailored json resume"
-  },
-  "pdf_base64": "JVBERi0xLjQK...",
-  "error": null,
-  "theme": "jsonresume-theme-stackoverflow"
-}
-```
-
-Failed response shape:
-
-```json
-{
-  "task_id": "9f5b4b08f74b4cb2bc4ebae613cb2e77",
-  "status": "failed",
-  "created_at": "2025-05-13T08:30:00Z",
-  "updated_at": "2025-05-13T08:30:10Z",
-  "resume": null,
-  "pdf_base64": null,
-  "error": {
-    "code": "llm_generation_failed",
-    "message": "Structured LLM generation failed for model 'openai/gpt-4o-mini'."
-  },
-  "theme": "jsonresume-theme-stackoverflow"
-}
-```
-
-## Callback Payloads
-
-Successful callback payload:
-
-```json
-{
-  "task_id": "9f5b4b08f74b4cb2bc4ebae613cb2e77",
-  "status": "completed",
-  "result": {
-    "resume": {
-      "...": "tailored json resume"
-    },
-    "pdf_base64": "JVBERi0xLjQK...",
-    "theme": "jsonresume-theme-stackoverflow"
-  }
-}
-```
-
-Failure callback payload:
-
-```json
-{
-  "task_id": "9f5b4b08f74b4cb2bc4ebae613cb2e77",
-  "status": "failed",
-  "error": {
-    "code": "llm_generation_failed",
-    "message": "Structured LLM generation failed for model 'openai/gpt-4o-mini'."
-  }
-}
-```
-
-## Data Storage
-
-By default the service stores:
-
-- SQLite database under `/data`
-- rendered PDFs under `/data/jobs/<task_id>/output.pdf`
-
-In the provided Podman compose setup, `/data` is backed by the local `./data` directory.
-
-## Local Development
-
-If you want to run without Podman:
+Install dependencies from `pyproject.toml` and start:
 
 ```bash
 uv run python -m resume_ops_api
 ```
 
-That requires the Python dependencies from `pyproject.toml` to be available in your local environment.
+### CLI Usage (Without API Server)
 
-## CLI Usage
-
-You can also use `resume-ops` directly from your terminal to generate tailored resumes locally without starting the API server. You have two options for running the CLI:
-
-### Option 1: Via Container (Recommended)
-
-Since the Podman image already bundles all dependencies (including Node.js and the PDF renderer), you can run the CLI through the container. To make file paths work seamlessly, mount your current working directory to the same path inside the container:
+You can also use `resume-ops` directly from your terminal to generate tailored resumes locally:
 
 ```bash
+# Via container:
 podman run --rm \
   --env-file .env \
   -v "$(pwd)":"$(pwd)" \
   -w "$(pwd)" \
   resume-ops \
   resume-ops \
-    --resume ./my-master-resume.json \
+    --resume ./master-resume.json \
     --jd ./target-job.md \
-    --output ./tailored-resume.pdf \
-    --theme jsonresume-theme-stackoverflow
-```
+    --output ./tailored-resume.pdf
 
-### Option 2: Running Natively (Local Environment)
-
-If you prefer to run it natively without a container, you can install the CLI directly into your Python environment:
-
-```bash
+# Or natively (requires global npm install of resumed & themes):
 uv pip install -e .
+npm install -g resumed @deadrat/jsonresume-theme-stackoverflow
+resume-ops --resume master-resume.json --jd target-job.md --output ./tailored-resume.pdf
 ```
-
-**Important Requirement for Native Usage:** The project relies on `resumed` to render PDFs. You must have Node.js installed and manually install the renderer and any themes you wish to use:
-
-```bash
-npm install -g resumed jsonresume-theme-stackoverflow
-```
-
-Once installed natively, you can run the command directly:
-
-```bash
-resume-ops \
-  --resume my-master-resume.json \
-  --jd target-job.md \
-  --output ./tailored-resume.pdf \
-  --output-json ./tailored-resume.json \
-  --theme jsonresume-theme-stackoverflow
-```
-
-**CLI Options:**
-
-- `--resume`: (Required) Path to the master JSON resume.
-- `--jd`: (Required) Path to the text or markdown job description.
-- `--output`: (Required) Path to save the resulting PDF.
-- `--output-json`: (Optional) Path to save the intermediate tailored JSON resume.
-- `--theme`: (Optional) The theme to use for rendering (must be in `ALLOWED_THEMES`).
 
 ## Current Limitations
 
