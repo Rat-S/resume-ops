@@ -111,6 +111,21 @@ _(Note: Because `compose.override.yaml` is present, it automatically compiles th
 
 ---
 
+## Updating to the Latest Version
+
+If you are running the pre-built registry images, updating is a one-liner:
+
+```bash
+podman compose pull && podman compose up -d
+```
+
+This pulls the latest `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` images from GHCR and restarts the containers in place. Your data (SQLite databases, uploaded resumes, scraped jobs) is stored in the `./data/` host volume and is **never affected** by image updates.
+
+> [!TIP]
+> New images are published to GHCR automatically whenever a version tag (`v*`) is pushed to this repository. You can follow releases on [GitHub](https://github.com/Rat-S/resume-ops/releases).
+
+---
+
 ## Example Request & Callback Usage
 
 ### List Available Themes
