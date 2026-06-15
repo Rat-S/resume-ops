@@ -10,7 +10,6 @@ services:
       - "8000:8000"
     volumes:
       - ./data/resume-ops:/data:Z,U
-      - ./master-resume.json:/data/master-resume.json:ro,z
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/healthz"]
       interval: 30s
@@ -25,7 +24,6 @@ services:
       - "3005:3001"
     volumes:
       - ./data/job-ops:/app/data:z,U
-      - ./master-resume.json:/app/master-resume.json:ro,z
       - codex-home:/app/codex-home
     environment:
       - NODE_ENV=production
