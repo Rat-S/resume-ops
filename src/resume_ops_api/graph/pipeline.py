@@ -117,6 +117,7 @@ class ResumeGraph:
                 user_prompt=user,
                 response_model=BasicsTailoringOutput,
                 session_id=state.get("job_id"),
+                validation_context={"original_resume": state["original_resume"]},
             ),
         )
         return {"tailored_basics": output}
@@ -136,6 +137,7 @@ class ResumeGraph:
             user_prompt=user,
             response_model=WorkTailoringOutput,
             session_id=state.get("job_id"),
+            validation_context={"original_resume": state["original_resume"]},
         )
         return {"tailored_work": output}
 
@@ -153,6 +155,7 @@ class ResumeGraph:
             user_prompt=user,
             response_model=EducationTailoringOutput,
             session_id=state.get("job_id"),
+            validation_context={"original_resume": state["original_resume"]},
         )
         return {"tailored_education": output}
 
@@ -168,6 +171,7 @@ class ResumeGraph:
             user_prompt=user,
             response_model=SkillsTailoringOutput,
             session_id=state.get("job_id"),
+            validation_context={"original_resume": state["original_resume"]},
         )
         return {"tailored_skills": output}
 
@@ -186,6 +190,7 @@ class ResumeGraph:
             user_prompt=user,
             response_model=ProjectsTailoringOutput,
             session_id=state.get("job_id"),
+            validation_context={"original_resume": state["original_resume"]},
         )
         return {"tailored_projects": output}
 
@@ -203,6 +208,7 @@ class ResumeGraph:
             user_prompt=user,
             response_model=CertificatesSelectionOutput,
             session_id=state.get("job_id"),
+            validation_context={"original_resume": state["original_resume"]},
         )
         return {"selected_certificates": output}
 
@@ -220,6 +226,7 @@ class ResumeGraph:
             user_prompt=user,
             response_model=OptionalSectionsOutput,
             session_id=state.get("job_id"),
+            validation_context={"original_resume": state["original_resume"]},
         )
         return {"tailored_optional_sections": output}
 

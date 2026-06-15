@@ -24,6 +24,7 @@ class StructuredLLMClient:
         user_prompt: str,
         response_model: type[ModelT],
         session_id: str | None = None,
+        validation_context: dict[str, Any] | None = None,
     ) -> ModelT:
         from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential, retry_if_exception
         import logging
@@ -63,6 +64,7 @@ class StructuredLLMClient:
                         user_prompt=user_prompt,
                         response_model=response_model,
                         session_id=session_id,
+                        validation_context=validation_context,
                     ),
                 )
 
@@ -74,6 +76,7 @@ class StructuredLLMClient:
         user_prompt: str,
         response_model: type[ModelT],
         session_id: str | None = None,
+        validation_context: dict[str, Any] | None = None,
     ) -> ModelT:
         extra_headers: dict[str, str] = {}
         if session_id:
@@ -91,6 +94,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 extra_headers=extra_headers or None,
+                validation_context=validation_context,
             )
             if isinstance(response, response_model):
                 return response
@@ -110,6 +114,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 extra_headers=extra_headers or None,
+                validation_context=validation_context,
             )
             if isinstance(response, response_model):
                 return response
@@ -131,30 +136,33 @@ class StructuredLLMClient:
             )
             content = completion["choices"][0]["message"]["content"]
             
-            # Clean up potential markdown formatting code blocks or leading/trailing conversational text
-            content_str = content.strip()
-            import re
-            match = re.search(r"```(?:json)?\s*(.*?)\s*```", content_str, re.DOTALL)
-            if match:
-                content_str = match.group(1).strip()
+            if isinstance(content, dict):
+                parsed = content
             else:
-                first_idx = min(
-                    [idx for idx in [content_str.find("{"), content_str.find("[")] if idx != -1],
-                    default=-1
-                )
-                last_idx = max(
-                    [idx for idx in [content_str.rfind("}"), content_str.rfind("]")] if idx != -1],
-                    default=-1
-                )
-                if first_idx != -1 and last_idx != -1 and last_idx > first_idx:
-                    content_str = content_str[first_idx : last_idx + 1].strip()
+                # Clean up potential markdown formatting code blocks or leading/trailing conversational text
+                content_str = content.strip()
+                import re
+                match = re.search(r"```(?:json)?\s*(.*?)\s*```", content_str, re.DOTALL)
+                if match:
+                    content_str = match.group(1).strip()
+                else:
+                    first_idx = min(
+                        [idx for idx in [content_str.find("{"), content_str.find("[")] if idx != -1],
+                        default=-1
+                    )
+                    last_idx = max(
+                        [idx for idx in [content_str.rfind("}"), content_str.rfind("]")] if idx != -1],
+                        default=-1
+                    )
+                    if first_idx != -1 and last_idx != -1 and last_idx > first_idx:
+                        content_str = content_str[first_idx : last_idx + 1].strip()
 
-            # If the content doesn't start with '{' or '[', but looks like a key-value or field definition, wrap it in braces
-            if not content_str.startswith("{") and not content_str.startswith("["):
-                if ":" in content_str:
-                    content_str = "{" + content_str + "}"
+                # If the content doesn't start with '{' or '[', but looks like a key-value or field definition, wrap it in braces
+                if not content_str.startswith("{") and not content_str.startswith("["):
+                    if ":" in content_str:
+                        content_str = "{" + content_str + "}"
 
-            parsed = json.loads(content_str)
+                parsed = json.loads(content_str)
             # Normalize list and dict wrappers to match target model schema
             if isinstance(parsed, list):
                 model_fields = list(response_model.model_fields.keys())
@@ -183,7 +191,7 @@ class StructuredLLMClient:
                                 parsed = {field_name: list_values[0]}
                                 break
 
-            return response_model.model_validate(parsed)
+            return response_model.model_validate(parsed, context=validation_context)
         except Exception as exc:
             import logging
             logging.error(f"Structured LLM generation failed for model '{model}': {exc}. Raw content was: {repr(locals().get('content'))}, content_str was: {repr(locals().get('content_str'))}")

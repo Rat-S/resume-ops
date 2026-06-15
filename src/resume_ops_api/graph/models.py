@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, ValidationInfo
 
 
 class StrategyOutput(BaseModel):
@@ -20,6 +20,18 @@ class WorkEntryTailoring(BaseModel):
 class WorkTailoringOutput(BaseModel):
     work: list[WorkEntryTailoring] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def validate_work_count(self, info: ValidationInfo) -> "WorkTailoringOutput":
+        context = info.context
+        if context and "original_resume" in context:
+            expected_count = len(context["original_resume"].get("work", []))
+            if len(self.work) != expected_count:
+                raise ValueError(
+                    f"The number of work items returned ({len(self.work)}) must align 1:1 "
+                    f"with the master resume ({expected_count})."
+                )
+        return self
+
 
 class EducationEntryTailoring(BaseModel):
     courses: list[str] = Field(default_factory=list)
@@ -27,6 +39,18 @@ class EducationEntryTailoring(BaseModel):
 
 class EducationTailoringOutput(BaseModel):
     education: list[EducationEntryTailoring] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_education_count(self, info: ValidationInfo) -> "EducationTailoringOutput":
+        context = info.context
+        if context and "original_resume" in context:
+            expected_count = len(context["original_resume"].get("education", []))
+            if len(self.education) != expected_count:
+                raise ValueError(
+                    f"The number of education items returned ({len(self.education)}) must align 1:1 "
+                    f"with the master resume ({expected_count})."
+                )
+        return self
 
 
 class SkillEntry(BaseModel):
@@ -70,9 +94,43 @@ class ProjectsTailoringOutput(BaseModel):
         description="List of at most 4 tailored projects that are most relevant to the target job description."
     )
 
+    @model_validator(mode="after")
+    def validate_project_names(self, info: ValidationInfo) -> "ProjectsTailoringOutput":
+        context = info.context
+        if context and "original_resume" in context:
+            original_names = {
+                p.get("name", "").strip().lower()
+                for p in context["original_resume"].get("projects", [])
+                if p.get("name")
+            }
+            for project in self.projects:
+                if project.name.strip().lower() not in original_names:
+                    raise ValueError(
+                        f"Project name '{project.name}' does not match any project name in the master resume verbatim. "
+                        f"Allowed project names: {', '.join(sorted(original_names))}"
+                    )
+        return self
+
 
 class CertificatesSelectionOutput(BaseModel):
     certificates: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_certificate_names(self, info: ValidationInfo) -> "CertificatesSelectionOutput":
+        context = info.context
+        if context and "original_resume" in context:
+            original_certs = {
+                c.get("name", "").strip().lower()
+                for c in context["original_resume"].get("certificates", [])
+                if isinstance(c, dict) and c.get("name")
+            }
+            for cert in self.certificates:
+                if cert.strip().lower() not in original_certs:
+                    raise ValueError(
+                        f"Certificate '{cert}' does not exist in the master resume. "
+                        f"Allowed certificates: {', '.join(sorted(original_certs))}"
+                    )
+        return self
 
 
 class InterestTailoring(BaseModel):
@@ -82,6 +140,23 @@ class InterestTailoring(BaseModel):
 
 class OptionalSectionsOutput(BaseModel):
     interests: list[InterestTailoring] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_interest_names(self, info: ValidationInfo) -> "OptionalSectionsOutput":
+        context = info.context
+        if context and "original_resume" in context:
+            original_interests = {
+                i.get("name", "").strip().lower()
+                for i in context["original_resume"].get("interests", [])
+                if i.get("name")
+            }
+            for interest in self.interests:
+                if interest.name.strip().lower() not in original_interests:
+                    raise ValueError(
+                        f"Interest '{interest.name}' does not exist in the master resume. "
+                        f"Allowed interests: {', '.join(sorted(original_interests))}"
+                    )
+        return self
 
 
 class BasicsTailoringOutput(BaseModel):
