@@ -113,13 +113,42 @@ _(Note: Because `compose.override.yaml` is present, it automatically compiles th
 
 ## Updating to the Latest Version
 
-If you are running the pre-built registry images, updating is a one-liner:
+### Compose (default)
+
+If you are running the pre-built registry images via `compose.yaml`:
 
 ```bash
 podman compose pull && podman compose up -d
 ```
 
 This pulls the latest `ghcr.io/rat-s/resume-ops:latest` and `ghcr.io/rat-s/job-ops:latest` images from GHCR and restarts the containers in place. Your data (SQLite databases, uploaded resumes, scraped jobs) is stored in the `./data/` host volume and is **never affected** by image updates.
+
+### Podman Quadlets (systemd)
+
+If you are running the containers as systemd services via [Podman Quadlets](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html), pull the new images and restart the units:
+
+```bash
+# Pull the latest images
+podman pull ghcr.io/rat-s/resume-ops:latest
+podman pull ghcr.io/rat-s/job-ops:latest
+
+# Restart the systemd units (adjust service names to match your .container files)
+systemctl --user restart resume-ops.service job-ops.service
+```
+
+**Automatic updates (optional)**: Add `AutoUpdate=registry` to your `.container` quadlet unit files, then enable and run `podman-auto-update`:
+
+```ini
+# In your .container file:
+[Container]
+Image=ghcr.io/rat-s/resume-ops:latest
+AutoUpdate=registry
+```
+
+```bash
+# Enable the auto-update timer
+systemctl --user enable --now podman-auto-update.timer
+```
 
 > [!TIP]
 > New images are published to GHCR automatically whenever a version tag (`v*`) is pushed to this repository. You can follow releases on [GitHub](https://github.com/Rat-S/resume-ops/releases).
