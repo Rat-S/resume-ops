@@ -82,6 +82,10 @@ class StructuredLLMClient:
         if session_id:
             extra_headers["X-Session-Id"] = session_id
 
+        # Ensure "json" is in the prompts to satisfy APIs enforcing this when response_format is json_object
+        if "json" not in system_prompt.lower() and "json" not in user_prompt.lower():
+            system_prompt = system_prompt + "\n\nNote: The output must be valid JSON."
+
         # 1. First, try strict JSON Schema mode (OpenAI Structured Outputs)
         try:
             client = cast(Any, instructor.from_litellm(self.completion_fn, mode=instructor.Mode.JSON_OAI, max_retries=2))
