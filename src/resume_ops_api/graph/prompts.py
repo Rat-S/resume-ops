@@ -183,9 +183,7 @@ def certificates_prompt(resume: dict[str, Any], job_description: str, strategy: 
 def optional_sections_prompt(resume: dict[str, Any], job_description: str, strategy: dict[str, Any]) -> tuple[str, str]:
     system = (
         "Tailor optional sections only if they already exist. "
-        "CRITICAL: You MUST keep the 'name' of each interest EXACTLY as provided in the master resume. "
-        "Do not alter interest names even slightly (e.g. spelling, casing, symbols, or adding extra descriptors), "
-        "or validation will fail. For interests, keep interest names verbatim and tailor keywords conservatively."
+        "For interests, keep interest names grounded in the source and tailor keywords conservatively."
     )
     user = (
         f"Job description:\n{job_description}\n\n"
