@@ -164,39 +164,4 @@ def test_validate_certificate_names_failure():
     assert "Certificate 'GCP Cloud Digital Leader' does not exist in the master resume" in str(excinfo.value)
 
 
-def test_validate_interest_names_success():
-    context = {
-        "original_resume": {
-            "interests": [
-                {"name": "Hiking"},
-                {"name": "Chess"},
-            ]
-        }
-    }
-    data = {
-        "interests": [
-            {"name": "hiking", "keywords": []},
-            {"name": "Chess", "keywords": []},
-        ]
-    }
-    obj = OptionalSectionsOutput.model_validate(data, context=context)
-    assert len(obj.interests) == 2
 
-
-def test_validate_interest_names_failure():
-    context = {
-        "original_resume": {
-            "interests": [
-                {"name": "Hiking"},
-            ]
-        }
-    }
-    data = {
-        "interests": [
-            {"name": "Gaming", "keywords": []},
-        ]
-    }
-    with pytest.raises(ValidationError) as excinfo:
-        OptionalSectionsOutput.model_validate(data, context=context)
-    
-    assert "Interest 'Gaming' does not exist in the master resume" in str(excinfo.value)

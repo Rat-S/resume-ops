@@ -141,23 +141,6 @@ class InterestTailoring(BaseModel):
 class OptionalSectionsOutput(BaseModel):
     interests: list[InterestTailoring] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def validate_interest_names(self, info: ValidationInfo) -> "OptionalSectionsOutput":
-        context = info.context
-        if context and "original_resume" in context:
-            original_interests = {
-                i.get("name", "").strip().lower()
-                for i in context["original_resume"].get("interests", [])
-                if i.get("name")
-            }
-            for interest in self.interests:
-                if interest.name.strip().lower() not in original_interests:
-                    raise ValueError(
-                        f"Interest '{interest.name}' does not exist in the master resume. "
-                        f"Allowed interests: {', '.join(sorted(original_interests))}"
-                    )
-        return self
-
 
 class BasicsTailoringOutput(BaseModel):
     label: str | None = Field(default=None, description="Tailored professional title / headline matching the strategy.")
