@@ -128,16 +128,32 @@ class StructuredLLMClient:
 
         # 3. Final fallback to raw acompletion with json_object
         try:
-            completion = await self.completion_fn(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.2,
-                response_format={"type": "json_object"},
-                extra_headers=extra_headers or None,
-            )
+            try:
+                completion = await self.completion_fn(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.2,
+                    response_format={"type": "json_object"},
+                    extra_headers=extra_headers or None,
+                )
+            except Exception as format_exc:
+                import logging
+                logging.debug(
+                    f"Raw completion with json_object failed for model '{model}': {format_exc}. "
+                    f"Retrying without response_format."
+                )
+                completion = await self.completion_fn(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.2,
+                    extra_headers=extra_headers or None,
+                )
             content = completion["choices"][0]["message"]["content"]
             
             if isinstance(content, dict):
