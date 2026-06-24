@@ -17,6 +17,7 @@ class TailorResponse(BaseModel):
     resume: dict[str, Any]
     pdf_base64: str
     theme: str
+    plain_text: str
 
 
 class QueuedTaskResponse(BaseModel):
@@ -42,6 +43,7 @@ class TaskStatusResponse(BaseModel):
     updated_at: datetime
     resume: dict[str, Any] | None = None
     pdf_base64: str | None = None
+    plain_text: str | None = None
     error: TaskError | None = None
     theme: str
 

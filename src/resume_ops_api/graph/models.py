@@ -155,3 +155,4 @@ class TailorResult(BaseModel):
     pdf_path: str
     pdf_base64: str
     theme: str
+    plain_text: str

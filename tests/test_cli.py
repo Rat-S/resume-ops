@@ -41,6 +41,7 @@ def _make_tailor_result(resume: dict, pdf_path: str) -> TailorResult:
         pdf_path=pdf_path,
         pdf_base64="ZmFrZQ==",
         theme="jsonresume-theme-stackoverflow",
+        plain_text="Name: Test\n",
     )
 
 

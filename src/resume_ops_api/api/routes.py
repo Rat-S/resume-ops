@@ -13,9 +13,11 @@ from resume_ops_api.api.models import (
     TaskStatusResponse,
     ThemeListResponse,
 )
+from resume_ops_api.services.ats_text import json_to_ats_text
 from resume_ops_api.services.container import ServiceContainer
 
 router = APIRouter()
+
 
 
 @router.get("/healthz", response_model=HealthResponse)
@@ -84,7 +86,7 @@ async def tailor_resume(
         job_description=payload.job_description,
         theme=theme,
     )
-    return TailorResponse(resume=result.resume, pdf_base64=result.pdf_base64, theme=result.theme)
+    return TailorResponse(resume=result.resume, pdf_base64=result.pdf_base64, theme=result.theme, plain_text=result.plain_text)
 
 
 @router.get("/api/v1/tasks/{task_id}", response_model=TaskStatusResponse)
@@ -99,6 +101,9 @@ async def get_task_status(
     pdf_base64 = None
     if job.result_pdf_path:
         pdf_base64 = await container.orchestrator.encode_pdf(job.result_pdf_path)
+    plain_text = None
+    if job.result_resume_json:
+        plain_text = json_to_ats_text(job.result_resume_json)
     return TaskStatusResponse(
         task_id=job.id,
         status=job.status,
@@ -106,6 +111,7 @@ async def get_task_status(
         updated_at=job.updated_at,
         resume=job.result_resume_json,
         pdf_base64=pdf_base64,
+        plain_text=plain_text,
         error=error,
         theme=job.theme,
     )

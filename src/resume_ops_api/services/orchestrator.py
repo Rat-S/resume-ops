@@ -7,6 +7,7 @@ from pathlib import Path
 from resume_ops_api.graph.models import TailorResult
 from resume_ops_api.graph.pipeline import ResumeGraph
 from resume_ops_api.graph.state import ResumeGraphState
+from resume_ops_api.services.ats_text import json_to_ats_text
 from resume_ops_api.services.schema import ResumeSchemaValidator
 
 
@@ -39,11 +40,13 @@ class TailorOrchestrator:
         )
         pdf_path = final_state["pdf_path"]
         pdf_base64 = await self.encode_pdf(pdf_path)
+        plain_text = json_to_ats_text(final_state["final_resume"])
         return TailorResult(
             resume=final_state["final_resume"],
             pdf_path=pdf_path,
             pdf_base64=pdf_base64,
             theme=theme,
+            plain_text=plain_text,
         )
 
     async def encode_pdf(self, pdf_path: str) -> str:
