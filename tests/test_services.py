@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
 import pytest
 from pydantic import BaseModel
 
@@ -521,3 +522,123 @@ class TestResumeRenderer:
         assert exc_info.value.code == "invalid_pdf_output"
         assert exc_info.value.status_code == 500
         assert "not a valid PDF" in exc_info.value.message
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter and StructuredLLMClient concurrency/rate-limiting tests
+# ---------------------------------------------------------------------------
+
+
+class TestLLMRateLimiting:
+    @pytest.mark.asyncio
+    async def test_async_rate_limiter_throttling(self) -> None:
+        """Verify that AsyncRateLimiter delays calls once the request limit is reached."""
+        from resume_ops_api.services.llm import AsyncRateLimiter
+        import time
+
+        # Allow 2 requests per 0.1 seconds
+        limiter = AsyncRateLimiter(requests=2, period=0.1)
+
+        start = time.monotonic()
+        await limiter.acquire()
+        await limiter.acquire()
+        duration_first_two = time.monotonic() - start
+
+        # The first two should be acquired almost instantly
+        assert duration_first_two < 0.05
+
+        # The third one should trigger a sleep of around 0.1s
+        await limiter.acquire()
+        total_duration = time.monotonic() - start
+        assert total_duration >= 0.09
+
+    @pytest.mark.asyncio
+    async def test_structured_llm_client_rate_limiting(self) -> None:
+        """Verify that StructuredLLMClient throttles calls according to rate_limit_requests."""
+        import time
+        from unittest.mock import AsyncMock
+
+        expected = TestStructuredLLMClient._FakeResponseModel(name="test", value=42)
+
+        client = StructuredLLMClient(
+            completion_fn=AsyncMock(),
+            rate_limit_requests=2,
+            rate_limit_period=0.1,
+        )
+
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(return_value=expected)
+            mock_instructor.return_value = mock_client
+
+            start = time.monotonic()
+            tasks = [
+                client.generate_structured(
+                    model="openai/gpt-4o-mini",
+                    system_prompt="system",
+                    user_prompt="user",
+                    response_model=TestStructuredLLMClient._FakeResponseModel,
+                )
+                for _ in range(3)
+            ]
+            results = await asyncio.gather(*tasks)
+
+        # All 3 calls should succeed
+        assert len(results) == 3
+        assert all(r == expected for r in results)
+
+        # Since rate limit is 2 per 0.1s, the third call should be delayed, causing total time >= 0.1s
+        total_time = time.monotonic() - start
+        assert total_time >= 0.09
+
+    @pytest.mark.asyncio
+    async def test_structured_llm_client_concurrency(self) -> None:
+        """Verify StructuredLLMClient respects max_concurrency limit."""
+        import time
+        from unittest.mock import AsyncMock
+
+        expected = TestStructuredLLMClient._FakeResponseModel(name="test", value=42)
+        active_calls = 0
+        max_active_calls = 0
+        lock = asyncio.Lock()
+
+        async def mock_completion(**kwargs):
+            nonlocal active_calls, max_active_calls
+            async with lock:
+                active_calls += 1
+                if active_calls > max_active_calls:
+                    max_active_calls = active_calls
+            await asyncio.sleep(0.05)
+            async with lock:
+                active_calls -= 1
+            return {
+                "choices": [
+                    {"message": {"content": '{"name": "test", "value": 42}'}}
+                ]
+            }
+
+        client = StructuredLLMClient(
+            completion_fn=mock_completion,
+            max_concurrency=2,
+        )
+
+        # Force instructors to fail to go to step 3 raw completion
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("force fallback"))
+            mock_instructor.return_value = mock_client
+
+            tasks = [
+                client.generate_structured(
+                    model="openai/gpt-4o-mini",
+                    system_prompt="system",
+                    user_prompt="user",
+                    response_model=TestStructuredLLMClient._FakeResponseModel,
+                )
+                for _ in range(4)
+            ]
+            results = await asyncio.gather(*tasks)
+
+        assert len(results) == 4
+        assert max_active_calls <= 2
+

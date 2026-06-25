@@ -66,7 +66,11 @@ def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
     database = overrides.get("database") or Database(settings.resolved_database_url)
     validator = overrides.get("validator") or ResumeSchemaValidator(settings.schema_path)
     theme_service = overrides.get("theme_service") or ThemeService(settings.allowed_themes, settings.default_theme)
-    llm_client = overrides.get("llm_client") or StructuredLLMClient()
+    llm_client = overrides.get("llm_client") or StructuredLLMClient(
+        rate_limit_requests=settings.llm_rate_limit_requests,
+        rate_limit_period=settings.llm_rate_limit_period,
+        max_concurrency=settings.llm_max_concurrency,
+    )
     renderer = overrides.get("renderer") or ResumeRenderer()
     callback_service = overrides.get("callback_service") or CallbackService(settings.callback_timeout_seconds)
     merger = overrides.get("merger") or ResumeMerger()

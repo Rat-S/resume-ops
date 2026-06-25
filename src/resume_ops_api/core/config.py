@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     gemini_api_key: str | None = None
     openai_base_url: str | None = None
+    llm_rate_limit_requests: int | None = None
+    llm_rate_limit_period: float = 60.0
+    llm_max_concurrency: int | None = None
 
     @field_validator("allowed_themes", mode="before")
     @classmethod

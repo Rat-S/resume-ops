@@ -1,6 +1,7 @@
-from __future__ import annotations
-
+import asyncio
+from collections import deque
 import json
+import time
 from typing import Any, TypeVar, cast
 
 import instructor
@@ -12,9 +13,54 @@ from resume_ops_api.core.exceptions import AppError
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
+class AsyncRateLimiter:
+    def __init__(self, requests: int, period: float) -> None:
+        self.requests = requests
+        self.period = period
+        self.timestamps: deque[float] = deque()
+        self.lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        if self.requests <= 0:
+            return
+
+        async with self.lock:
+            while True:
+                now = time.monotonic()
+                # Remove timestamps older than the period
+                while self.timestamps and self.timestamps[0] <= now - self.period:
+                    self.timestamps.popleft()
+
+                if len(self.timestamps) < self.requests:
+                    self.timestamps.append(now)
+                    break
+
+                # We need to wait until the oldest timestamp falls out of the window
+                sleep_time = self.timestamps[0] + self.period - now
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
+
+
 class StructuredLLMClient:
-    def __init__(self, completion_fn: Any | None = None) -> None:
+    def __init__(
+        self,
+        completion_fn: Any | None = None,
+        *,
+        rate_limit_requests: int | None = None,
+        rate_limit_period: float = 60.0,
+        max_concurrency: int | None = None,
+    ) -> None:
         self.completion_fn = completion_fn or acompletion
+        self.rate_limiter = (
+            AsyncRateLimiter(rate_limit_requests, rate_limit_period)
+            if rate_limit_requests
+            else None
+        )
+        self.semaphore = (
+            asyncio.Semaphore(max_concurrency)
+            if max_concurrency
+            else None
+        )
 
     async def generate_structured(
         self,
@@ -56,17 +102,27 @@ class StructuredLLMClient:
         ):
             with attempt:
                 from typing import cast
-                return await cast(
-                    Any,
-                    self._generate_structured_internal(
-                        model=model,
-                        system_prompt=system_prompt,
-                        user_prompt=user_prompt,
-                        response_model=response_model,
-                        session_id=session_id,
-                        validation_context=validation_context,
-                    ),
-                )
+                
+                async def _call_with_rate_limiting():
+                    if self.rate_limiter:
+                        await self.rate_limiter.acquire()
+                    return await cast(
+                        Any,
+                        self._generate_structured_internal(
+                            model=model,
+                            system_prompt=system_prompt,
+                            user_prompt=user_prompt,
+                            response_model=response_model,
+                            session_id=session_id,
+                            validation_context=validation_context,
+                        ),
+                    )
+
+                if self.semaphore:
+                    async with self.semaphore:
+                        return await _call_with_rate_limiting()
+                else:
+                    return await _call_with_rate_limiting()
 
     async def _generate_structured_internal(
         self,
