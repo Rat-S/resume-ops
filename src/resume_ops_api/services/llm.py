@@ -89,8 +89,12 @@ class StructuredLLMClient:
             return True
 
         import sys
+        import os
         is_testing = "pytest" in sys.modules
-        max_attempts = 10
+        try:
+            max_attempts = int(os.getenv("LLM_MAX_RETRIES", "10"))
+        except ValueError:
+            max_attempts = 10
         min_wait = 0 if is_testing else 3
         max_wait = 0 if is_testing else 30
 
