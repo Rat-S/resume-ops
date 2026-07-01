@@ -385,6 +385,64 @@ class TestStructuredLLMClient:
         assert result.name == "fallback-robust"
         assert result.value == 42
 
+    @pytest.mark.asyncio
+    async def test_generate_structured_caches_successful_response(self) -> None:
+        """When caching is enabled, successful validation results are cached."""
+        expected = self._FakeResponseModel(name="test", value=42)
+        completion_fn = AsyncMock()
+        client = StructuredLLMClient(completion_fn=completion_fn, enable_cache=True)
+        
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(return_value=expected)
+            mock_instructor.return_value = mock_client
+
+            result1 = await client.generate_structured(
+                model="openai/gpt-4o-mini",
+                system_prompt="system",
+                user_prompt="user",
+                response_model=self._FakeResponseModel,
+            )
+            # The second call should hit the cache and not invoke completions
+            result2 = await client.generate_structured(
+                model="openai/gpt-4o-mini",
+                system_prompt="system",
+                user_prompt="user",
+                response_model=self._FakeResponseModel,
+            )
+
+        assert result1 == expected
+        assert result2 == expected
+        assert mock_client.chat.completions.create.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_generate_structured_does_not_cache_validation_failure(self) -> None:
+        """When validation fails, the result is not saved to the cache."""
+        async def mock_completion(**kwargs):
+            return {
+                "choices": [
+                    {"message": {"content": "not valid json"}}
+                ]
+            }
+
+        client = StructuredLLMClient(completion_fn=mock_completion, enable_cache=True)
+        with patch("resume_ops_api.services.llm.instructor.from_litellm") as mock_instructor:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create = AsyncMock(side_effect=RuntimeError("force fallback"))
+            mock_instructor.return_value = mock_client
+
+            # First run fails validation
+            with pytest.raises(AppError):
+                await client.generate_structured(
+                    model="openai/gpt-4o-mini",
+                    system_prompt="system",
+                    user_prompt="user",
+                    response_model=self._FakeResponseModel,
+                )
+
+        # Cache must remain empty
+        assert len(client.cache) == 0
+
 
 
 # ---------------------------------------------------------------------------
@@ -646,12 +704,8 @@ class TestLLMRateLimiting:
 class TestContainerInitialization:
     """Tests for the build_container helper and caching setup."""
 
-    def test_build_container_enables_litellm_cache(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_build_container_enables_client_cache(self, tmp_path: Path) -> None:
         from resume_ops_api.services.container import build_container
-        import litellm
-
-        # Clear litellm.cache if already set to start clean
-        monkeypatch.setattr(litellm, "cache", None)
 
         settings = Settings(
             _env_file=None,
@@ -671,8 +725,7 @@ class TestContainerInitialization:
              patch("resume_ops_api.services.container.JobStore"), \
              patch("resume_ops_api.services.container.AsyncJobRunner"):
             
-            build_container(settings)
+            container = build_container(settings)
 
-        assert litellm.cache is not None
-        assert isinstance(litellm.cache, litellm.Cache)
+        assert container.llm_client.enable_cache is True
 

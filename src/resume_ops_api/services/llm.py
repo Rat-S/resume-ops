@@ -49,8 +49,11 @@ class StructuredLLMClient:
         rate_limit_requests: int | None = None,
         rate_limit_period: float = 60.0,
         max_concurrency: int | None = None,
+        enable_cache: bool = False,
     ) -> None:
         self.completion_fn = completion_fn or acompletion
+        self.enable_cache = enable_cache
+        self.cache: dict[tuple[str, str, str, str], Any] = {}
         self.rate_limiter = (
             AsyncRateLimiter(rate_limit_requests, rate_limit_period)
             if rate_limit_requests
@@ -72,6 +75,12 @@ class StructuredLLMClient:
         session_id: str | None = None,
         validation_context: dict[str, Any] | None = None,
     ) -> ModelT:
+        cache_key = (model, system_prompt, user_prompt, response_model.__name__)
+        if self.enable_cache and cache_key in self.cache:
+            import logging
+            logging.info(f"Returning cached validated response for model '{model}' and schema '{response_model.__name__}'")
+            return self.cache[cache_key]
+
         from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential, retry_if_exception
         import logging
 
@@ -124,9 +133,13 @@ class StructuredLLMClient:
 
                 if self.semaphore:
                     async with self.semaphore:
-                        return await _call_with_rate_limiting()
+                        result = await _call_with_rate_limiting()
                 else:
-                    return await _call_with_rate_limiting()
+                    result = await _call_with_rate_limiting()
+
+                if self.enable_cache:
+                    self.cache[cache_key] = result
+                return result
 
     async def _generate_structured_internal(
         self,

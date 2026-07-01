@@ -63,12 +63,6 @@ class ServiceContainer:
 
 
 def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
-    if settings.llm_cache:
-        import litellm
-        # Enable LiteLLM caching if not already enabled
-        if not getattr(litellm, "cache", None):
-            litellm.cache = litellm.Cache()
-
     database = overrides.get("database") or Database(settings.resolved_database_url)
     validator = overrides.get("validator") or ResumeSchemaValidator(settings.schema_path)
     theme_service = overrides.get("theme_service") or ThemeService(settings.allowed_themes, settings.default_theme)
@@ -76,6 +70,7 @@ def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
         rate_limit_requests=settings.llm_rate_limit_requests,
         rate_limit_period=settings.llm_rate_limit_period,
         max_concurrency=settings.llm_max_concurrency,
+        enable_cache=settings.llm_cache,
     )
     renderer = overrides.get("renderer") or ResumeRenderer()
     callback_service = overrides.get("callback_service") or CallbackService(settings.callback_timeout_seconds)
