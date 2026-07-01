@@ -63,6 +63,12 @@ class ServiceContainer:
 
 
 def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
+    if settings.llm_cache:
+        import litellm
+        # Enable LiteLLM caching if not already enabled
+        if not getattr(litellm, "cache", None):
+            litellm.cache = litellm.Cache()
+
     database = overrides.get("database") or Database(settings.resolved_database_url)
     validator = overrides.get("validator") or ResumeSchemaValidator(settings.schema_path)
     theme_service = overrides.get("theme_service") or ThemeService(settings.allowed_themes, settings.default_theme)

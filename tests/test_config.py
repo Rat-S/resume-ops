@@ -84,6 +84,10 @@ class TestSettingsDefaults:
         settings = _clean_settings()
         assert settings.callback_timeout_seconds == 5
 
+    def test_default_llm_cache(self) -> None:
+        settings = _clean_settings()
+        assert settings.llm_cache is False
+
 
     def test_default_api_keys_are_none(self) -> None:
         # Explicit None to guard against host env vars
@@ -193,6 +197,11 @@ class TestSettingsEnvironmentOverrides:
         monkeypatch.setenv("OPENAI_BASE_URL", "https://proxy.example.com/v1")
         settings = _clean_settings()
         assert settings.openai_base_url == "https://proxy.example.com/v1"
+
+    def test_llm_cache_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("LLM_CACHE", "true")
+        settings = _clean_settings()
+        assert settings.llm_cache is True
 
 
 class TestSettingsFieldValidators:

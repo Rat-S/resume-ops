@@ -75,6 +75,7 @@ class Settings(BaseSettings):
     llm_rate_limit_requests: int | None = None
     llm_rate_limit_period: float = 60.0
     llm_max_concurrency: int | None = None
+    llm_cache: bool = False
 
     @field_validator("allowed_themes", mode="before")
     @classmethod

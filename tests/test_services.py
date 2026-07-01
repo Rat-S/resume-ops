@@ -642,3 +642,37 @@ class TestLLMRateLimiting:
         assert len(results) == 4
         assert max_active_calls <= 2
 
+
+class TestContainerInitialization:
+    """Tests for the build_container helper and caching setup."""
+
+    def test_build_container_enables_litellm_cache(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        from resume_ops_api.services.container import build_container
+        import litellm
+
+        # Clear litellm.cache if already set to start clean
+        monkeypatch.setattr(litellm, "cache", None)
+
+        settings = Settings(
+            _env_file=None,
+            default_model="openai/gpt-4o-mini",
+            data_dir=tmp_path,
+            llm_cache=True,
+        )
+
+        with patch("resume_ops_api.services.container.Database"), \
+             patch("resume_ops_api.services.container.ResumeSchemaValidator"), \
+             patch("resume_ops_api.services.container.ThemeService"), \
+             patch("resume_ops_api.services.container.ResumeRenderer"), \
+             patch("resume_ops_api.services.container.CallbackService"), \
+             patch("resume_ops_api.services.container.ResumeMerger"), \
+             patch("resume_ops_api.services.container.ResumeGraph"), \
+             patch("resume_ops_api.services.container.TailorOrchestrator"), \
+             patch("resume_ops_api.services.container.JobStore"), \
+             patch("resume_ops_api.services.container.AsyncJobRunner"):
+            
+            build_container(settings)
+
+        assert litellm.cache is not None
+        assert isinstance(litellm.cache, litellm.Cache)
+
