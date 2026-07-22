@@ -71,6 +71,10 @@ def build_container(settings: Settings, **overrides: Any) -> ServiceContainer:
         rate_limit_period=settings.llm_rate_limit_period,
         max_concurrency=settings.llm_max_concurrency,
         enable_cache=settings.llm_cache,
+        max_retries=settings.llm_max_retries,
+        retry_min_wait=settings.llm_retry_min_wait_seconds,
+        retry_max_wait=settings.llm_retry_max_wait_seconds,
+        retry_multiplier=settings.llm_retry_multiplier,
     )
     renderer = overrides.get("renderer") or ResumeRenderer()
     callback_service = overrides.get("callback_service") or CallbackService(settings.callback_timeout_seconds)

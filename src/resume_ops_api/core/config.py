@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     llm_rate_limit_period: float = 60.0
     llm_max_concurrency: int | None = None
     llm_cache: bool = False
+    llm_max_retries: int = 10
+    llm_retry_min_wait_seconds: float = 3.0
+    llm_retry_max_wait_seconds: float = 60.0
+    llm_retry_multiplier: float = 3.0
 
     @field_validator("allowed_themes", mode="before")
     @classmethod

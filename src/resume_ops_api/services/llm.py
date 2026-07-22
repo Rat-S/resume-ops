@@ -50,10 +50,18 @@ class StructuredLLMClient:
         rate_limit_period: float = 60.0,
         max_concurrency: int | None = None,
         enable_cache: bool = False,
+        max_retries: int = 10,
+        retry_min_wait: float = 3.0,
+        retry_max_wait: float = 60.0,
+        retry_multiplier: float = 3.0,
     ) -> None:
         self.completion_fn = completion_fn or acompletion
         self.enable_cache = enable_cache
         self.cache: dict[tuple[str, str, str, str], Any] = {}
+        self.max_retries = max_retries
+        self.retry_min_wait = retry_min_wait
+        self.retry_max_wait = retry_max_wait
+        self.retry_multiplier = retry_multiplier
         self.rate_limiter = (
             AsyncRateLimiter(rate_limit_requests, rate_limit_period)
             if rate_limit_requests
@@ -98,18 +106,15 @@ class StructuredLLMClient:
             return True
 
         import sys
-        import os
         is_testing = "pytest" in sys.modules
-        try:
-            max_attempts = int(os.getenv("LLM_MAX_RETRIES", "10"))
-        except ValueError:
-            max_attempts = 10
-        min_wait = 0 if is_testing else 3
-        max_wait = 0 if is_testing else 30
+        max_attempts = self.max_retries
+        min_wait = 0 if is_testing else self.retry_min_wait
+        max_wait = 0 if is_testing else self.retry_max_wait
+        multiplier = 1 if is_testing else self.retry_multiplier
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(max_attempts),
-            wait=wait_exponential(multiplier=3, min=min_wait, max=max_wait),
+            wait=wait_exponential(multiplier=multiplier, min=min_wait, max=max_wait),
             retry=retry_if_exception(should_retry),
             reraise=True,
         ):
