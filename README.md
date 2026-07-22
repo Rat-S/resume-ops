@@ -150,8 +150,38 @@ AutoUpdate=registry
 systemctl --user enable --now podman-auto-update.timer
 ```
 
-> [!TIP]
-> New images are published to GHCR automatically whenever a version tag (`v*`) is pushed to this repository. You can follow releases on [GitHub](https://github.com/Rat-S/resume-ops/releases).
+### Rootless Boot Mount Dependencies (Network / FUSE Storage)
+
+If your volume mount (`/data`) resides on a network mount or a FUSE/mergerfs pool (e.g. `/mnt/media`), systemd user services (`systemd --user`) run early during boot and cannot resolve system-level `.mount` units. This can cause Podman to hang or time out during boot.
+
+To prevent boot startup timeouts, add a `[Service]` block to your `.container` file:
+
+```ini
+[Service]
+ExecStartPre=/usr/bin/sh -c 'while ! mountpoint -q /mnt/media; do sleep 1; done'
+TimeoutStartSec=900
+Restart=always
+RestartSec=5
+```
+
+---
+
+## Custom & External Themes
+
+`resume-ops` includes pre-installed `jsonresume-theme-folio` (default) and `jsonresume-theme-stackoverflow`.
+
+### Adding Third-Party Themes
+
+You can install and use any JSON Resume theme from npm **without rebuilding the container image**. `resume-ops` looks for installed themes in `./data/themes` via `NODE_PATH`.
+
+1. Install your desired theme into the mounted data directory:
+   ```bash
+   npm install --prefix ./data/themes jsonresume-theme-even
+   ```
+2. Add the theme to `ALLOWED_THEMES` in your `.env`:
+   ```ini
+   ALLOWED_THEMES=jsonresume-theme-folio,jsonresume-theme-stackoverflow,jsonresume-theme-even
+   ```
 
 ---
 
@@ -173,7 +203,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/tailor \
   -d @- <<'JSON'
 {
   "job_description": "Looking for a product leader with AI and platform experience.",
-  "theme": "@deadrat/jsonresume-theme-stackoverflow"
+  "theme": "jsonresume-theme-folio"
 }
 JSON
 ```

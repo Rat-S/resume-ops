@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -32,6 +33,13 @@ class ResumeRenderer:
         input_path = output_dir / "resume.json"
         pdf_path = output_dir / "output.pdf"
         input_path.write_text(json.dumps(resume, ensure_ascii=True, indent=2), encoding="utf-8")
+        
+        env = os.environ.copy()
+        extra_paths = ["/data/themes/node_modules", str(Path.home() / ".npm-global" / "lib" / "node_modules")]
+        existing_node_path = env.get("NODE_PATH", "")
+        paths = [p for p in extra_paths + existing_node_path.split(":") if p]
+        env["NODE_PATH"] = ":".join(dict.fromkeys(paths))
+
         process = await asyncio.create_subprocess_exec(
             binary,
             "export",
@@ -44,6 +52,7 @@ class ResumeRenderer:
             "--puppeteer-arg=--disable-setuid-sandbox",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
         _, stderr = await process.communicate()
         if process.returncode != 0:
