@@ -2,6 +2,8 @@
 
 Podman-first FastAPI service for tailoring a JSON Resume to a job description while protecting immutable resume fields.
 
+[![Documentation](https://img.shields.io/badge/Docs-.env%20Configurator%20%26%20Guide-38bdf8?style=for-the-badge&logo=github)](https://rat-s.github.io/resume-ops/)
+
 ## What It Does
 
 The service accepts:
