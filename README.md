@@ -4,6 +4,16 @@ Podman-first FastAPI service for tailoring a JSON Resume to a job description wh
 
 [![Documentation](https://img.shields.io/badge/Docs-.env%20Configurator%20%26%20Guide-38bdf8?style=for-the-badge&logo=github)](https://rat-s.github.io/resume-ops/)
 
+## Why resume-ops? (The Ethos)
+
+Automated ATS scanners and fast-skimming recruiters often filter out qualified engineers simply because their resume uses different terminology or buries relevant achievements.
+
+`resume-ops` provides an AI tool on **your side of the table**:
+
+- **Signal Over Noise**: Re-aligns your authentic accomplishments to the target job description so your true fit is immediately obvious.
+- **Truth Over Fabrication**: Your contact details, job titles, companies, dates, and degrees are strictly immutable. `resume-ops` reformulates and prioritizes real experience; it **never** invents fake projects or unverified skills.
+- **Privacy & Self-Hosting**: Runs in your own isolated Podman/Docker container. You retain full control over model routing—whether running 100% offline with local LLMs (vLLM, Ollama) or routing to your trusted API provider of choice.
+
 ## What It Does
 
 The service accepts:
