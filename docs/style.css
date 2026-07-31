@@ -72,6 +72,13 @@ header {
   align-items: center;
 }
 
+.nav-left,
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -92,22 +99,27 @@ header {
   font-weight: 600;
 }
 
-.nav-links {
-  display: flex;
+.btn-covai {
+  display: inline-flex;
   align-items: center;
-  gap: 1.5rem;
-  list-style: none;
-}
-
-.nav-links a {
-  color: var(--text-secondary);
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-highlight);
+  color: var(--text-primary);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
   text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: color 0.2s;
+  opacity: 0.9;
+  transition: all 0.2s;
 }
 
-.nav-links a:hover {
+.btn-covai:hover {
+  opacity: 1;
+  background: var(--bg-card-hover);
+  border-color: var(--accent-cyan);
   color: var(--accent-cyan);
 }
 
